@@ -81,6 +81,8 @@ final int LABEL_OFFSET = 3;
 
 final int MATRIX_WIDTH = 6;
 final int MATRIX_HEIGHT = 3;
+int CELL_WIDTH;
+int CELL_HEIGHT;
 color[][] ledMatrix;
 
 
@@ -91,7 +93,6 @@ color[][] ledMatrix;
 Serial arduino;
 
 Capture webcam;
-MovReact movReact;
 boolean webcamOn;
 PImage frame;
 
@@ -141,15 +142,24 @@ void setup() {
   
   // ----------------------- WEB CAM ----------------------- //
   
+  frameRate(30);
+  
   webcamOn = false;
   String[] cameras = Capture.list();
-  //String camera = cameras[0];
+  String camera = cameras[0];
   for (String c : cameras) {
-    if (c == "Full HD webcam") webcam = new Capture(this, 640, 480, c);
+    if (c == "Full HD webcam") camera = c;
   }
-    
-  movReact = new MovReact();
   
+  webcam = new Capture(this, 640, 480, camera);
+  
+  println(camera);
+  
+  CELL_WIDTH = (width/MATRIX_WIDTH);
+  CELL_HEIGHT = (height/MATRIX_HEIGHT);
+  
+  ledMatrix = new color[MATRIX_WIDTH][MATRIX_HEIGHT];
+    
    
   // ----------------------- WINDOW ----------------------- //
 
@@ -270,10 +280,27 @@ void setup() {
       public void controlEvent(CallbackEvent theEvent) {
         if (theEvent.getAction() == ControlP5.ACTION_PRESS) {
           if (toggle.getState()) {
-            for(Toggle off_toggle : mainMenuToggles) {
-              if (!off_toggle.equals(toggle)) off_toggle.setState(false);
+            if (toggle.equals(mainMenuToggles[2])) {
+              webcamOn = true;
+              webcam.start();
             }
             
+            for(Toggle off_toggle : mainMenuToggles) {
+              if (!off_toggle.equals(toggle)) {
+                if (off_toggle.equals(mainMenuToggles[2])) {
+                  webcamOn = false;
+                  webcam.stop();
+                }
+                off_toggle.setState(false);
+              }
+            }
+            
+          }
+          else {
+            if (toggle.equals(mainMenuToggles[2])) {
+              webcamOn = false;
+              webcam.stop();
+            }
           }
           mode = toggle.getId();
           println("m: "+mode);
@@ -340,9 +367,11 @@ void draw() {
   
   drawApp();
   
-  if (mode == 2) {
-    sendMovMatrix();
+  if (webcamOn) {
+    sendMode();
   }
+  
+  //println("r: "+red(pickedColor)+" g: "+green(pickedColor)+" blue: "+blue(pickedColor));
   
 
 }
@@ -469,6 +498,7 @@ boolean isInsideColorWheel() {
 
 void mousePressed() {
   if (isInsideColorWheel()) {
+    pckColor();
     sendPickedColor("picked_color:");
   }
 }
@@ -477,8 +507,11 @@ void mousePressed() {
 // ----------------------- PICK COLOR ----------------------- //
 
 void sendPickedColor(String prefix) {
-  pickedColor = get(mouseX, mouseY);
   arduino.write(prefix+red(pickedColor)+","+green(pickedColor)+","+blue(pickedColor)+"\n");
+}
+
+void pckColor() {
+  pickedColor = get(mouseX, mouseY);
 }
 
 
@@ -528,34 +561,81 @@ void sendMovMatrix() {
     frame = webcam.copy();
     frame.loadPixels();
   
-    movReact.calculateMatrixColors();
+    calculateMatrixColors();
     //movReact.updateMatrix();
     
     String stringLedMatrix = "";
     
     for (int i = 0; i < MATRIX_WIDTH; i++) {
       for (int j = 0; j < MATRIX_HEIGHT; j++) {
-        stringLedMatrix += red(ledMatrix[i][j]) + ",";
-        stringLedMatrix += green(ledMatrix[i][j]) + ",";
-        stringLedMatrix += blue(ledMatrix[i][j]) + ";";
+        stringLedMatrix += int(red(ledMatrix[i][j])) + ",";
+        stringLedMatrix += int(green(ledMatrix[i][j])) + ",";
+        stringLedMatrix += int(blue(ledMatrix[i][j])) + ";";
       }
     }
     
     arduino.write("mode_moveReact:"+stringLedMatrix);
+    
+    println("mode_moveReact:"+stringLedMatrix);
+    
+    delay(100);
+    
   }
 }
 
 
 // ----------------------- WEBCAM ----------------------- //
 
-void controlEvent(CallbackEvent theEvent) {
-  if (theEvent.getController().equals(mainMenuToggles[2])) {
-    webcamOn = mainMenuToggles[2].getState();
-    toggleWebcam();
+
+void calculateMatrixColors() {
+  for (int i = 0; i < MATRIX_WIDTH; i++) {
+    for (int j = 0; j < MATRIX_HEIGHT; j++) {
+      int invert_x = MATRIX_WIDTH - 1 - i;
+      
+      int x = i * CELL_WIDTH + CELL_WIDTH / 2;
+      int y = j * CELL_HEIGHT + CELL_HEIGHT / 2;
+      int loc = x + y * frame.width;
+      loc = constrain(loc, 0, frame.pixels.length - 1);
+
+      color c = color(red(frame.pixels[loc]), green(frame.pixels[loc]), blue(frame.pixels[loc]));
+
+      // Find the closest color in the palette
+      color closestColor = findClosestColor(c, colorPalette);
+      
+      // If the closest color distance is above a threshold, set it to black
+      if (colorDistance(c, closestColor) > 100) { // Adjust the threshold as needed
+        ledMatrix[invert_x][j] = color(0, 0, 0); // Black
+      } else {
+        ledMatrix[invert_x][j] = closestColor;
+      }
+    }
   }
 }
 
-void toggleWebcam() {
-  if (webcamOn) webcam.start();
-  else webcam.stop();
+color findClosestColor(color c, color[] palette) {
+  float minDistance = Float.MAX_VALUE;
+  color closestColor = color(0, 0, 0);
+  
+  for (color paletteColor : palette) {
+    float distance = colorDistance(c, paletteColor);
+    
+    if (distance < minDistance) {
+      minDistance = distance;
+      closestColor = paletteColor;
+    }
+  }
+  
+  return closestColor;
+}
+
+float colorDistance(color c1, color c2) {
+  float r1 = red(c1);
+  float g1 = green(c1);
+  float b1 = blue(c1);
+  
+  float r2 = red(c2);
+  float g2 = green(c2);
+  float b2 = blue(c2);
+  
+  return dist(r1, g1, b1, r2, g2, b2);
 }

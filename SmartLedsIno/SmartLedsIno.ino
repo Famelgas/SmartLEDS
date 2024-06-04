@@ -89,9 +89,7 @@ byte dynamicHue = HUE_INIT;
 int analogVal = 0;
 
 int mic=0;
-int r=152;
-int g=0;
-int b=10;
+
 
 
 // --------------------------------------------------------
@@ -138,17 +136,17 @@ void loop() {
     switch (mode) {
       case 0: // solid color
         solid(CRGB(pickedColor[0], pickedColor[1], pickedColor[2]));
-        //fill_solid(led_strip, NUM_LEDS, CRGB(pickedColor[0], pickedColor[1], pickedColor[2]));
         break;
 
       case 1: // sound reaction
         //soundReact();
-        LinearReactive();
+        //LinearReactive();
+        solid(CRGB(200, 0, 200));
         break;
 
       case 2: // movement reaction
         movReact();
-        solid(CRGB(CRGB::Green));
+        //solid(CRGB(CRGB::Green));
         break;
 
       case 3: // rainbow
@@ -195,25 +193,30 @@ int mapLedsSerpentine(uint8_t index, uint8_t y) {
 // -------------------------------------------------------------------------------
 
 void solid(const struct CRGB & color) {
+  FastLED.clear();
   for( uint8_t y = 0; y < kMatrixHeight; y++) {   
     for( uint8_t x = 0; x < kMatrixWidth; x++) {
       led_strip[mapLeds(XY(x, y), y)] = color;
     }
   }
   FastLED.setBrightness(brightness);
+  delay(10);
 }
 
 void solid(const struct CHSV & color) {
+  FastLED.clear();
   for( uint8_t y = 0; y < kMatrixHeight; y++) {   
     for( uint8_t x = 0; x < kMatrixWidth; x++) {
       led_strip[mapLeds(XY(x, y), y)] = color;
     }
   }
   FastLED.setBrightness(brightness);
+  delay(10);
 }
 
 
 void rainbow() {
+  FastLED.clear();
   uint32_t ms = millis();
   int32_t yHueDelta32 = ((int32_t)cos16( ms * (27/1) ) * (350 / kMatrixWidth));
   int32_t xHueDelta32 = ((int32_t)cos16( ms * (39/1) ) * (310 / kMatrixHeight));
@@ -241,114 +244,20 @@ void DrawOneFrame( uint8_t startHue8, int8_t yHueDelta8, int8_t xHueDelta8) {
 // ---------------------------------------------------------
 // ---------------------- SOUND REACT ----------------------
 
-void LinearFlowing() {
-  //readAnalog();
-  analogVal = analogRead(MICROPHONE_PIN);
-  Serial.println(analogVal);
-
-  mic = map(analogVal, MIN_VAL, MAX_VAL, 0, BRIGHTNESS);
-
-  int dynamicDelay = map(analogVal, MIN_VAL, MAX_VAL, 20, 1);
-  
-  for (int i = 0; i < NUM_LEDS-1; i++) {
-    led_strip[i] = led_strip[i+1];
-  }
-  
-  led_strip[NUM_LEDS-1] = CHSV(dynamicHue += HUE_CHANGE, SATURATION, mic);
-
-  delay(dynamicDelay);
-}
-
-
-void LinearReactive() {
-  //readAnalog();
-  analogVal = analogRead(MICROPHONE_PIN);
-  Serial.println(analogVal);
-  
-  mic = map(analogVal, 0, MAX_VAL+1, 0, NUM_LEDS_MATRIX);
-  int i = 0;
-  for( uint8_t y = 0; y < kMatrixHeight; y++) {
-    for( uint8_t x = 0; x < kMatrixWidth; x++) {
-      if (i <= mic)
-        led_strip[mapLeds(XY(x, y), y)] = CHSV(HUE_INIT+(HUE_CHANGE*i), SATURATION, BRIGHTNESS);
-      else
-        led_strip[mapLeds(XY(x, y), y)].nscale8(10);
-
-      i++;
-    }
-  }
-}
-
-void soundReact() {
-  mic=analogRead(A0);
-  mic=mic*2;
-  // delay(50);
-  if((mic>=450)&&(mic<=550))
-  {
-    led_strip[(NUM_LEDS_MATRIX/2)-1]=CRGB (0, 0, 255);
-    led_strip[NUM_LEDS_MATRIX/2]=CRGB (0, 0, 255);
-  }
-  else if((mic>=400)&&(mic<=450))
-  {
-    led_strip[(NUM_LEDS_MATRIX/2)-1]=CRGB (153, 153, 0);
-    led_strip[NUM_LEDS_MATRIX/2]=CRGB (153, 153, 0);
-  }
-  else if((mic>=350)&&(mic<=400))
-  {
-    led_strip[(NUM_LEDS_MATRIX/2)-1]=CRGB (255, 50, 255);
-    led_strip[NUM_LEDS_MATRIX/2]=CRGB (255, 50, 255);
-  }
-  else if((mic>=300)&&(mic<=350))
-  {
-    led_strip[(NUM_LEDS_MATRIX/2)-1]=CRGB (10, 25, 217);
-    led_strip[NUM_LEDS_MATRIX/2]=CRGB (10, 25, 217);
-  }
-
-    else if((mic>=276)&&(mic<=300))
-  {
-    led_strip[(NUM_LEDS_MATRIX/2)-1]=CRGB (50, 50, 150);
-    led_strip[NUM_LEDS_MATRIX/2]=CRGB (50, 50, 150);
-  }
-  else if((mic>=250)&&(mic<=275))
-  {
-    led_strip[(NUM_LEDS_MATRIX/2)-1]=CRGB (230, 0, 10);
-    led_strip[NUM_LEDS_MATRIX/2]=CRGB (230, 0, 10);
-  }
-  else if((mic>=235)&&(mic<=250))
-  {
-    led_strip[(NUM_LEDS_MATRIX/2)-1]=CRGB (0, 160, 0);
-    led_strip[NUM_LEDS_MATRIX/2]=CRGB (0, 160, 0);
-  }
-  else if((mic>=200)&&(mic<=230))
-  {
-    led_strip[(NUM_LEDS_MATRIX/2)-1]=CRGB (1, 0, 1);
-    led_strip[NUM_LEDS_MATRIX/2]=CRGB (1, 0, 1);
-  }
-  else
-  {
-    led_strip[(NUM_LEDS_MATRIX/2)-1] = CRGB ( r,mic-100,b);
-    led_strip[NUM_LEDS_MATRIX/2] = CRGB ( r,mic-100,b);
-  }
-    for (int i = 0; i <= ((NUM_LEDS_MATRIX/2)-2); i++) 
-  {
-    led_strip[i] = led_strip[i+1];
-    led_strip[NUM_LEDS_MATRIX-1-i] = led_strip[(NUM_LEDS_MATRIX)-i-2];
-  }
-
-  delay(25);
-}
 
 
 // ------------------------------------------------------------
 // ---------------------- MOVEMENT REACT ----------------------
 
 void movReact() {
+  FastLED.clear();
   for( uint8_t y = 0; y < kMatrixHeight; y++) {   
     for( uint8_t x = 0; x < kMatrixWidth; x++) {
       led_strip[mapLeds(XY(x, y), y)]  = colorMatrix[x][y];
     }
   }
   FastLED.setBrightness(brightness);
+  delay(25);
 }
 
 
@@ -430,7 +339,7 @@ void parseLedMatrix() {
       colorMatrix[x][y] = CRGB(color[0], color[1], color[2]);
     }
   }
-
+  delay(50);
 }
 
 
@@ -479,6 +388,10 @@ void recieveInfo() {
     }
     if (readSerial == "mode_soundReact") {
       mode = 1;
+      FastLED.clear();
+    }
+    if (readSerial == "mode_moveReact") {
+      mode = 2;
       FastLED.clear();
     }
     if (readSerial.startsWith("mode_moveReact:")) {
