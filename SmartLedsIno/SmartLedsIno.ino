@@ -67,7 +67,7 @@ uint16_t XY (uint8_t x, uint8_t y) {
   return j;
 }
 
-CRGB colorMatrix[MATRIX_WIDTH][MATRIX_HEIGHT];
+String colorMatrix[MATRIX_WIDTH][MATRIX_HEIGHT];
 
 
 int ROW1_COL1 = 1, ROW1_COL6 = 5;
@@ -95,7 +95,10 @@ int mic=0;
 // --------------------------------------------------------
 // ---------------------- PROCESSING ----------------------
 
-String readSerial;
+String readSerial = "";
+String ledMatrixData = "";
+bool receivingMatrixData = false;
+
 int mode;
 bool power;
 int brightness;
@@ -128,10 +131,9 @@ void setup() {
 }
 
 void loop() {
-  FastLED.clear();
-
   recieveInfo();
-
+  FastLED.clear();
+  
   if (power) {
     switch (mode) {
       case 0: // solid color
@@ -139,14 +141,12 @@ void loop() {
         break;
 
       case 1: // sound reaction
-        //soundReact();
-        //LinearReactive();
+        // soundReact();
         solid(CRGB(200, 0, 200));
         break;
 
       case 2: // movement reaction
         movReact();
-        //solid(CRGB(CRGB::Green));
         break;
 
       case 3: // rainbow
@@ -158,7 +158,7 @@ void loop() {
         break;
     }
   }
-    
+  
   FastLED.show(); // Display the updated LEDs
 }
 
@@ -169,13 +169,12 @@ void loop() {
 // ------------------------------------------------------------------------------
 
 int mapLeds(uint8_t index, uint8_t y) {
-  if (y == 0)
-    return map(index, 0, 5, 1, 6);
-  if (y ==1)
-    return map(index, 6, 11, 12, 17);
-  if (y == 2)
-    return map(index, 12, 17, 23, 28);
+  if (y == 0) return map(index, 0, 5, 1, 6);
+  if (y == 1) return map(index, 6, 11, 12, 17);
+  if (y == 2) return map(index, 12, 17, 23, 28);
+  return -1; // Invalid index
 }
+
 
 int mapLedsSerpentine(uint8_t index, uint8_t y) {
   if (y == 0)
@@ -193,30 +192,27 @@ int mapLedsSerpentine(uint8_t index, uint8_t y) {
 // -------------------------------------------------------------------------------
 
 void solid(const struct CRGB & color) {
-  FastLED.clear();
-  for( uint8_t y = 0; y < kMatrixHeight; y++) {   
-    for( uint8_t x = 0; x < kMatrixWidth; x++) {
+  for (uint8_t y = 0; y < MATRIX_HEIGHT; y++) {
+    for (uint8_t x = 0; x < MATRIX_WIDTH; x++) {
       led_strip[mapLeds(XY(x, y), y)] = color;
     }
   }
   FastLED.setBrightness(brightness);
-  delay(10);
+  delay(25);
 }
 
 void solid(const struct CHSV & color) {
-  FastLED.clear();
   for( uint8_t y = 0; y < kMatrixHeight; y++) {   
     for( uint8_t x = 0; x < kMatrixWidth; x++) {
       led_strip[mapLeds(XY(x, y), y)] = color;
     }
   }
   FastLED.setBrightness(brightness);
-  delay(10);
+  delay(25);
 }
 
 
 void rainbow() {
-  FastLED.clear();
   uint32_t ms = millis();
   int32_t yHueDelta32 = ((int32_t)cos16( ms * (27/1) ) * (350 / kMatrixWidth));
   int32_t xHueDelta32 = ((int32_t)cos16( ms * (39/1) ) * (310 / kMatrixHeight));
@@ -249,18 +245,7 @@ void DrawOneFrame( uint8_t startHue8, int8_t yHueDelta8, int8_t xHueDelta8) {
 // ------------------------------------------------------------
 // ---------------------- MOVEMENT REACT ----------------------
 
-void movReact() {
-  FastLED.clear();
-  for( uint8_t y = 0; y < kMatrixHeight; y++) {   
-    for( uint8_t x = 0; x < kMatrixWidth; x++) {
-      led_strip[mapLeds(XY(x, y), y)]  = colorMatrix[x][y];
-    }
-  }
-  FastLED.setBrightness(brightness);
-  delay(25);
-}
-
-
+/*
 void modeMovReact() {
   // Trigger the ultrasonic sensor to measure distance
   digitalWrite(TRIGGER_PIN, LOW); 
@@ -270,8 +255,6 @@ void modeMovReact() {
   digitalWrite(TRIGGER_PIN, LOW);
   echo_time = pulseIn(ECHO_PIN, HIGH, 30000);
   distance = (echo_time * 0.034) / 2;
-
-  FastLED.clear();
   
 
   if (distance >= min_distance && distance <= max_distance) {
@@ -303,45 +286,94 @@ void modeMovReact() {
   delay(10);
 }
 
+*/
 
+
+
+
+void movReact() {
+  // Use the parsed colorMatrix
+  for (uint8_t y = 0; y < MATRIX_HEIGHT; y++) {
+    for (uint8_t x = 0; x < MATRIX_WIDTH; x++) {
+      String colorStr = colorMatrix[x][y];
+      int firstComma = colorStr.indexOf(',');
+      int secondComma = colorStr.indexOf(',', firstComma + 1);
+      
+      int r = colorStr.substring(0, firstComma).toInt();
+      int g = colorStr.substring(firstComma + 1, secondComma).toInt();
+      int b = colorStr.substring(secondComma + 1).toInt();
+      
+      led_strip[mapLeds(XY(x, y), y)] = CRGB(r, g, b);
+    }
+  }
+  FastLED.setBrightness(brightness);
+  delay(25);
+}
 // ---------------------------------------------------------------------------------------
 // ------------------------------------ COMMUNICATION ------------------------------------
 // ---------------------------------------------------------------------------------------
 
-void parseLedMatrix() {
-  int color[3];
-
-  int start_tk;
-  int rg_tk;
-  int gb_tk;
-  int end_tk;
-
-  for (int x = 0; x < MATRIX_WIDTH; x++) {
-    for (int y = 0; y < MATRIX_HEIGHT; y++) {
-      if (x == 0 && y == 0) {
-        start_tk = readSerial.indexOf(":");
-        rg_tk = readSerial.indexOf(",");
-        gb_tk = readSerial.indexOf(",", rg_tk + 1);
-        end_tk = readSerial.indexOf(";");
+void recieveInfo() {
+  while (Serial.available() > 0) {
+    char receivedChar = (char)Serial.read();
+    
+    if (receivingMatrixData) {
+      if (receivedChar == '\r') { // End of full data transmission
+        receivingMatrixData = false;
+        ledMatrixData += readSerial;
+        readSerial = "";
+        
+        // Process the accumulated data
+        parseLedMatrix(ledMatrixData);
+        ledMatrixData = "";
+      } else if (receivedChar == '\n') { // End of a chunk
+        ledMatrixData += readSerial;
+        readSerial = "";
+      } else {
+        readSerial += receivedChar;
       }
-      else {
-        start_tk = end_tk;
-        rg_tk = readSerial.indexOf(",", gb_tk + 1);
-        gb_tk = readSerial.indexOf(",", rg_tk + 1);
-        end_tk = readSerial.indexOf(";", start_tk + 1);
+    } else {
+      readSerial += receivedChar;
+      if (receivedChar == '\n') {
+        readSerial.trim();
+        
+        if (readSerial.startsWith("mode_moveReact:")) {
+          receivingMatrixData = true;
+          ledMatrixData = readSerial;
+          readSerial = "";
+        } else {
+          processCommand(readSerial);
+          readSerial = "";
+        }
       }
-
-      color[0] = readSerial.substring(start_tk + 1, rg_tk).toInt();
-      color[1] = readSerial.substring(rg_tk + 1, gb_tk).toInt();
-      color[2] = readSerial.substring(gb_tk + 1, end_tk).toInt();
-      
-      
-      colorMatrix[x][y] = CRGB(color[0], color[1], color[2]);
     }
   }
-  delay(50);
 }
 
+void processCommand(String command) {
+  if (command == "power_on") {
+    power = true;
+  } else if (command == "power_off") {
+    power = false;
+  } else if (command == "brightness_down") {
+    if (brightness > 10) {
+      brightness -= 10;
+    }
+  } else if (command == "brightness_up") {
+    if (brightness < 100) {
+      brightness += 10;
+    }
+  } else if (command.startsWith("picked_color:")) {
+    parsePickedColor();
+  } else if (command == "mode_solid") {
+    mode = 0;
+  } else if (command == "mode_soundReact") {
+    mode = 1;
+  } else if (command == "mode_rainbow") {
+    mode = 3;
+  }
+  Serial.flush(); // Clear the buffer after processing
+}
 
 void parsePickedColor() {
   int rgb_tk2 = readSerial.indexOf(",");
@@ -352,67 +384,17 @@ void parsePickedColor() {
 }
 
 
-void recieveInfo() {
-  if (Serial.available() > 0) {  // Check if data is available
-    readSerial = Serial.readStringUntil('\n');
-    readSerial.trim();
+void parseLedMatrix(String data) {
+  int start_tk = data.indexOf(":") + 1; // Start after the "mode_moveReact:" prefix
+  String ledMatrixData = data.substring(start_tk);
+  
+  int colorIndex = 0; // To keep track of the color sets
 
-    if (readSerial == "power_on") {
-      power = true;
-      FastLED.clear();
-    }
-    if (readSerial == "power_off") {
-      power = false;
-      FastLED.clear();
-    }
-    if (readSerial == "brightness_down") {
-      if (brightness > 10) {
-        brightness -= 10;
-      }
-      FastLED.clear();
-    }
-    if (readSerial == "brightness_up") {
-      if (brightness < 100) {
-        brightness += 10;
-      }
-      FastLED.clear();
-    }
-    if (readSerial.startsWith("picked_color:")) {
-      parsePickedColor();
-      FastLED.clear();
-    }
-    if (readSerial.startsWith("mode_solid:")) {
-      mode = 0;
-      parsePickedColor();
-      FastLED.clear();
-    }
-    if (readSerial == "mode_soundReact") {
-      mode = 1;
-      FastLED.clear();
-    }
-    if (readSerial == "mode_moveReact") {
-      mode = 2;
-      FastLED.clear();
-    }
-    if (readSerial.startsWith("mode_moveReact:")) {
-      mode = 2;
-      parseLedMatrix();
-      FastLED.clear();
-    }
-    if (readSerial == "mode_rainbow") {
-      mode = 3;
-      FastLED.clear();
+  for (int x = 0; x < MATRIX_WIDTH; x++) {
+    for (int y = 0; y < MATRIX_HEIGHT; y++) {
+      int nextSemicolon = ledMatrixData.indexOf(';', colorIndex);
+      colorMatrix[x][y] = ledMatrixData.substring(colorIndex, nextSemicolon);
+      colorIndex = nextSemicolon + 1;
     }
   }
-}
-
-
-void readAnalog() {
-  analogVal = analogRead(MICROPHONE_PIN);
-
-  if(analogVal > MAX_VAL)
-    analogVal = MAX_VAL;
-
-  if(analogVal < MIN_VAL)
-    analogVal = MIN_VAL;
 }

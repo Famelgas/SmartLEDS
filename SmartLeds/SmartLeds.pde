@@ -29,7 +29,7 @@ color HEX_FF6C3D = color(255, 108, 61);
 color HEX_FFCF73 = color(255, 207, 115);
 color HEX_FFF5A5 = color(255, 245, 165);
 
-// color[] colorPalette = {HEX_CA1421, HEX_F0000E, HEX_C13C00, HEX_FF6C3D, HEX_FFCF73, HEX_FFF5A5};
+color[] colorPalette = {HEX_CA1421, HEX_F0000E, HEX_C13C00, HEX_FF6C3D, HEX_FFCF73, HEX_FFF5A5};
 
 
 // blues
@@ -43,7 +43,7 @@ color HEX_54F5F5 = color(84, 245, 245);
 // color[] colorPalette = {HEX_001220, HEX_063356, HEX_078FEF, HEX_1491AE, HEX_399FD7, HEX_54F5F5};
 
 // reds and blues
-color[] colorPalette = {HEX_001220, HEX_063356, HEX_078FEF, HEX_1491AE, HEX_399FD7, HEX_54F5F5, HEX_CA1421, HEX_F0000E, HEX_C13C00, HEX_FF6C3D, HEX_FFCF73, HEX_FFF5A5};
+//color[] colorPalette = {HEX_001220, HEX_063356, HEX_078FEF, HEX_1491AE, HEX_399FD7, HEX_54F5F5, HEX_CA1421, HEX_F0000E, HEX_C13C00, HEX_FF6C3D, HEX_FFCF73, HEX_FFF5A5};
 
 
 
@@ -84,6 +84,7 @@ final int MATRIX_HEIGHT = 3;
 int CELL_WIDTH;
 int CELL_HEIGHT;
 color[][] ledMatrix;
+String stringLedMatrix;
 
 
 // --------------------------------------------------------- //
@@ -142,8 +143,6 @@ void setup() {
   
   // ----------------------- WEB CAM ----------------------- //
   
-  frameRate(30);
-  
   webcamOn = false;
   String[] cameras = Capture.list();
   String camera = cameras[0];
@@ -159,6 +158,7 @@ void setup() {
   CELL_HEIGHT = (height/MATRIX_HEIGHT);
   
   ledMatrix = new color[MATRIX_WIDTH][MATRIX_HEIGHT];
+  stringLedMatrix = "mode_moveReact:";
     
    
   // ----------------------- WINDOW ----------------------- //
@@ -367,12 +367,13 @@ void draw() {
   
   drawApp();
   
+  
   if (webcamOn) {
-    sendMode();
+    //sendMovMatrix();
+    delay(200);
   }
   
-  //println("r: "+red(pickedColor)+" g: "+green(pickedColor)+" blue: "+blue(pickedColor));
-  
+  //delay(150);
 
 }
 
@@ -498,24 +499,39 @@ boolean isInsideColorWheel() {
 
 void mousePressed() {
   if (isInsideColorWheel()) {
-    pckColor();
-    sendPickedColor("picked_color:");
+    pickedColor();
   }
 }
 
 
 // ----------------------- PICK COLOR ----------------------- //
 
-void sendPickedColor(String prefix) {
-  arduino.write(prefix+red(pickedColor)+","+green(pickedColor)+","+blue(pickedColor)+"\n");
-}
-
-void pckColor() {
+void pickedColor() {
   pickedColor = get(mouseX, mouseY);
+  if (mode == 0)
+    arduino.write("picked_color:"+red(pickedColor)+","+green(pickedColor)+","+blue(pickedColor)+"\n");
 }
 
 
 // ----------------------- ARDUINO COMMUNICATION ----------------------- //
+
+/*
+void sendModeOff() {
+  arduino.write("mode_off\n");
+}
+*/
+
+void sendMode() {
+  switch (mode) {
+    case 2:
+      sendMovMatrix();
+      delay(200);
+      break;
+    default:
+      arduino.write(modes[mode]+"\n");
+      break;
+  }
+}
 
 void sendPower() {
   if (power) {
@@ -526,66 +542,53 @@ void sendPower() {
   }
 }
 
-void sendModeOff() {
-  arduino.write("mode_off\n");
-}
-
-void sendSolid() {
-  sendPickedColor("mode_solid:");
-}
-
-void sendMode() {
-  switch (mode) {
-    case 0: // solid color
-      sendSolid();
-      break;
-    case 2:
-      sendMovMatrix();
-      break;
-    default:
-      arduino.write(modes[mode]+"\n");
-      break;
-  }
-  
-}
-
 void sendBrightness(String up_down) {
   arduino.write("brightness_"+up_down+"\n");
 }
 
+
 void sendMovMatrix() {
   if (webcam.available()) {
-    //background(0);
     webcam.read();
-    
     frame = webcam.copy();
     frame.loadPixels();
   
     calculateMatrixColors();
-    //movReact.updateMatrix();
+    updateLedMatrixString();
     
-    String stringLedMatrix = "";
+    int chunkSize = 64; // Adjust based on Arduino's buffer size
+    int dataLength = stringLedMatrix.length();
     
-    for (int i = 0; i < MATRIX_WIDTH; i++) {
-      for (int j = 0; j < MATRIX_HEIGHT; j++) {
-        stringLedMatrix += int(red(ledMatrix[i][j])) + ",";
-        stringLedMatrix += int(green(ledMatrix[i][j])) + ",";
-        stringLedMatrix += int(blue(ledMatrix[i][j])) + ";";
-      }
+    for (int i = 0; i < dataLength; i += chunkSize) {
+      int end = min(i + chunkSize, dataLength);
+      String chunk = stringLedMatrix.substring(i, end);
+      arduino.write(chunk + '\n'); // Send chunk with newline
+      delay(50); // Adjust delay as needed
     }
     
-    arduino.write("mode_moveReact:"+stringLedMatrix);
+    arduino.write('\r'); // Send carriage return to indicate end of transmission
+    println(stringLedMatrix);
     
-    println("mode_moveReact:"+stringLedMatrix);
-    
-    delay(100);
-    
+    delay(500); // Adjust delay to control the sending rate
   }
 }
 
 
+
+
+
 // ----------------------- WEBCAM ----------------------- //
 
+void updateLedMatrixString() {
+  stringLedMatrix = "mode_moveReact:";
+  for (int i = 0; i < MATRIX_WIDTH; i++) {
+    for (int j = 0; j < MATRIX_HEIGHT; j++) {
+      stringLedMatrix += int(red(ledMatrix[i][j])) + ",";
+      stringLedMatrix += int(green(ledMatrix[i][j])) + ",";
+      stringLedMatrix += int(blue(ledMatrix[i][j])) + ";";
+    }
+  }
+}
 
 void calculateMatrixColors() {
   for (int i = 0; i < MATRIX_WIDTH; i++) {
