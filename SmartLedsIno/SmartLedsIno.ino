@@ -293,6 +293,7 @@ void modeMovReact() {
 
 void movReact() {
   // Use the parsed colorMatrix
+  FastLED.clear();
   for (uint8_t y = 0; y < MATRIX_HEIGHT; y++) {
     for (uint8_t x = 0; x < MATRIX_WIDTH; x++) {
       String colorStr = colorMatrix[x][y];
@@ -307,8 +308,11 @@ void movReact() {
     }
   }
   FastLED.setBrightness(brightness);
+  FastLED.show();
   delay(25);
 }
+
+
 // ---------------------------------------------------------------------------------------
 // ------------------------------------ COMMUNICATION ------------------------------------
 // ---------------------------------------------------------------------------------------
@@ -341,6 +345,7 @@ void recieveInfo() {
           receivingMatrixData = true;
           ledMatrixData = readSerial;
           readSerial = "";
+          mode = 2;
         } else {
           processCommand(readSerial);
           readSerial = "";

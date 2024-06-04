@@ -369,7 +369,7 @@ void draw() {
   
   
   if (webcamOn) {
-    //sendMovMatrix();
+    sendMovMatrix();
     delay(200);
   }
   
