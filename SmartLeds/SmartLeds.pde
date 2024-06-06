@@ -79,8 +79,8 @@ final int SELECTOR_SIZE = 25;
 final int LABEL_OFFSET = 3;
 
 
-final int MATRIX_WIDTH = 6;
-final int MATRIX_HEIGHT = 3;
+final int MATRIX_WIDTH = 20;
+final int MATRIX_HEIGHT = 10;
 int CELL_WIDTH;
 int CELL_HEIGHT;
 color[][] ledMatrix;
