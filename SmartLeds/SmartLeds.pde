@@ -83,7 +83,7 @@ final int MATRIX_WIDTH = 20;
 final int MATRIX_HEIGHT = 10;
 int CELL_WIDTH;
 int CELL_HEIGHT;
-color[][] ledMatrix;
+String[][] ledMatrix;
 String stringLedMatrix;
 
 
@@ -158,7 +158,7 @@ void setup() {
   CELL_WIDTH = (width/MATRIX_WIDTH);
   CELL_HEIGHT = (height/MATRIX_HEIGHT);
   
-  ledMatrix = new color[MATRIX_WIDTH][MATRIX_HEIGHT];
+  ledMatrix = new String[MATRIX_WIDTH][MATRIX_HEIGHT];
   stringLedMatrix = "mode_moveReact:";
     
    
@@ -585,9 +585,7 @@ void updateLedMatrixString() {
   stringLedMatrix = "mode_moveReact:";
   for (int i = 0; i < MATRIX_WIDTH; i++) {
     for (int j = 0; j < MATRIX_HEIGHT; j++) {
-      stringLedMatrix += int(red(ledMatrix[i][j])) + ",";
-      stringLedMatrix += int(green(ledMatrix[i][j])) + ",";
-      stringLedMatrix += int(blue(ledMatrix[i][j])) + ";";
+      stringLedMatrix += ledMatrix[i][j] + ";";
     }
   }
 }
@@ -609,9 +607,9 @@ void calculateMatrixColors() {
       
       // If the closest color distance is above a threshold, set it to black
       if (colorDistance(c, closestColor) > 100) { // Adjust the threshold as needed
-        ledMatrix[invert_x][j] = color(0, 0, 0); // Black
+        ledMatrix[invert_x][j] = hex(color(0, 0, 0)); // Black in hex
       } else {
-        ledMatrix[invert_x][j] = closestColor;
+        ledMatrix[invert_x][j] = hex(closestColor); // Closest color in hex
       }
     }
   }
