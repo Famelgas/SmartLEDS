@@ -73,7 +73,7 @@ void setup() {
 
 void loop() {
   FastLED.clear();
-
+  char colorMatrix[MATRIX_WIDTH][MATRIX_HEIGHT][12];
   String readSerial = "";
   String ledMatrixData = "";
   bool receivingMatrixData = false;
@@ -86,7 +86,8 @@ void loop() {
         ledMatrixData += readSerial;
         readSerial = "";
         
-        mode = 2;
+        colorMatrix = parseLedMatrix(ledMatrixData);
+        ledMatrixData = "";
         break;
       } else if (receivedChar == '\n') { // End of a chunk
         ledMatrixData += readSerial;
@@ -103,7 +104,7 @@ void loop() {
           receivingMatrixData = true;
           ledMatrixData = readSerial;
           readSerial = "";
-          //mode = 2;
+          mode = 2;
         } else {
           processCommand(readSerial);
           readSerial = "";
@@ -128,8 +129,7 @@ void loop() {
 
       case 2: // movement reaction
         // Process the accumulated data
-        movReact(ledMatrixData);
-        ledMatrixData = "";
+        movReact();
         break;
 
       case 3: // rainbow
@@ -207,8 +207,7 @@ void solid(const struct CHSV & color) {
   delay(100);
 }
 
-
-void movReact(String data) {
+char*** parseLedMatrix(String data) {
   char colorMatrix[MATRIX_WIDTH][MATRIX_HEIGHT][12]; // Each color string "255,255,255" + null terminator
 
   int start_tk = data.indexOf(":") + 1; // Start after the "mode_moveReact:" prefix
@@ -227,6 +226,11 @@ void movReact(String data) {
       colorIndex = nextSemicolon + 1;
     }
   }
+
+}
+
+
+void movReact(String data) {
 
   // Applying the color values to the LED matrix
   for (uint8_t y = 0; y < MATRIX_HEIGHT; y++) {

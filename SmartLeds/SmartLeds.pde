@@ -564,7 +564,7 @@ void sendMovMatrix() {
       int end = min(i + chunkSize, dataLength);
       String chunk = stringLedMatrix.substring(i, end);
       arduino.write(chunk + '\n'); // Send chunk with newline
-      delay(100); // Adjust delay as needed
+      delay(50); // Adjust delay as needed
     }
     
     arduino.write('\r'); // Send carriage return to indicate end of transmission
