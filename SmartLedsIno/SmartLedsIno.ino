@@ -11,6 +11,7 @@
 #define MATRIX_HEIGHT 10
 #define LAST_VISIBLE_LED 199
 
+
 uint16_t XY (uint8_t x, uint8_t y) {
   // any out of bounds address maps to the first hidden pixel
   if ( (x >= MATRIX_WIDTH) || (y >= MATRIX_HEIGHT) ) {
@@ -45,19 +46,21 @@ bool power;
 int brightness;
 int pickedColor[3];
 
+
+
 // ---------------------------------------------------------------------------------
 // ------------------------------------ ARDUINO ------------------------------------
 // ---------------------------------------------------------------------------------
 
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);
 
   pinMode(TRIGGER_PIN, OUTPUT);
   pinMode(ECHO_PIN, INPUT);
   pinMode(MICROPHONE_PIN, INPUT);
 
   power = true;
-  mode = 0;
+  mode=0;
   brightness = 200;
   pickedColor[0] = 255;
   pickedColor[1] = 138;
@@ -71,12 +74,9 @@ void setup() {
 void loop() {
   FastLED.clear();
 
-  uint32_t colorMatrix[MATRIX_WIDTH][MATRIX_HEIGHT];
-  
   String readSerial = "";
   String ledMatrixData = "";
   bool receivingMatrixData = false;
-
   while (Serial.available() > 0) {
     char receivedChar = (char)Serial.read();
     
@@ -86,9 +86,8 @@ void loop() {
         ledMatrixData += readSerial;
         readSerial = "";
         
-        parseLedMatrix(ledMatrixData, colorMatrix); // Parse the received data
-        ledMatrixData = "";
-        delay(100);
+        //mode = 2;
+        break;
       } else if (receivedChar == '\n') { // End of a chunk
         ledMatrixData += readSerial;
         readSerial = "";
@@ -108,13 +107,14 @@ void loop() {
         } else {
           processCommand(readSerial);
           readSerial = "";
+          break;
         }
       }
     }
   }
 
   Serial.flush();
-
+  
   if (power) {
     switch (mode) {
       case 0: // solid color
@@ -127,21 +127,24 @@ void loop() {
         break;
 
       case 2: // movement reaction
-        movReact(colorMatrix); // Use the parsed color matrix
+        // Process the accumulated data
+        movReact(ledMatrixData);
+        ledMatrixData = "";
         break;
 
       case 3: // rainbow
         rainbow();
         break;
-
+      
       case -1: // error
         fill_solid(led_strip, NUM_LEDS, CRGB(CRGB::Orange));
         break;
     }
   }
-
+  
   FastLED.show(); // Display the updated LEDs
 }
+
 
 // ------------------------------------ COMMUNICATION ------------------------------------
 
@@ -170,7 +173,11 @@ void processCommand(String command) {
   Serial.flush(); // Clear the buffer after processing
 }
 
+
+
+// -------------------------------------------------------------------------------
 // ------------------------------------ MODES ------------------------------------
+// -------------------------------------------------------------------------------
 
 void parsePickedColor(String pckColor) {
   int rgb_tk2 = pckColor.indexOf(",");
@@ -187,7 +194,7 @@ void solid(const struct CRGB & color) {
     }
   }
   FastLED.setBrightness(brightness);
-  delay(100);
+  delay(25);
 }
 
 void solid(const struct CHSV & color) {
@@ -197,12 +204,50 @@ void solid(const struct CHSV & color) {
     }
   }
   FastLED.setBrightness(brightness);
-  delay(100);
+  delay(25);
 }
 
 
-void parseLedMatrix(String data, uint32_t colorMatrix[MATRIX_WIDTH][MATRIX_HEIGHT]) {
-  int start_tk = data.indexOf(":") + 1;
+void movReact(String data) {
+  char colorMatrix[MATRIX_WIDTH][MATRIX_HEIGHT][12]; // Each color string "255,255,255" + null terminator
+
+  int start_tk = data.indexOf(":") + 1; // Start after the "mode_moveReact:" prefix
+  String ledMatrixData = data.substring(start_tk);
+
+  int colorIndex = 0; // To keep track of the color sets
+  int nextSemicolon = 0;
+
+  for (int x = 0; x < MATRIX_WIDTH; x++) {
+    for (int y = 0; y < MATRIX_HEIGHT; y++) {
+      nextSemicolon = ledMatrixData.indexOf(';', colorIndex);
+      ledMatrixData.substring(colorIndex, nextSemicolon).toCharArray(colorMatrix[x][y], 12);
+      colorIndex = nextSemicolon + 1;
+    }
+  }
+
+  for (uint8_t y = 0; y < MATRIX_HEIGHT; y++) {
+    for (uint8_t x = 0; x < MATRIX_WIDTH; x++) {
+      char* colorStr = colorMatrix[x][y];
+      int r = atoi(strtok(colorStr, ","));
+      int g = atoi(strtok(NULL, ","));
+      int b = atoi(strtok(NULL, ","));
+      
+      led_strip[mapLeds(XY(x, y), y)] = CRGB(r, g, b);
+    }
+  }
+
+  FastLED.setBrightness(brightness);
+  FastLED.show();
+  delay(25);
+}
+
+
+
+/*
+void parseLedMatrix(String data) {
+  String colorMatrix[MATRIX_WIDTH][MATRIX_HEIGHT];
+
+  int start_tk = data.indexOf(":") + 1; // Start after the "mode_moveReact:" prefix
   String ledMatrixData = data.substring(start_tk);
   
   int colorIndex = 0; // To keep track of the color sets
@@ -210,53 +255,39 @@ void parseLedMatrix(String data, uint32_t colorMatrix[MATRIX_WIDTH][MATRIX_HEIGH
   for (int x = 0; x < MATRIX_WIDTH; x++) {
     for (int y = 0; y < MATRIX_HEIGHT; y++) {
       int nextSemicolon = ledMatrixData.indexOf(';', colorIndex);
-      colorMatrix[x][y] = strtoul(ledMatrixData.substring(colorIndex, nextSemicolon).c_str(), NULL, 16);
+      colorMatrix[x][y] = ledMatrixData.substring(colorIndex, nextSemicolon);
       colorIndex = nextSemicolon + 1;
     }
   }
 }
-
-
-void movReact(uint32_t colorMatrix[MATRIX_WIDTH][MATRIX_HEIGHT]) {
-  FastLED.clear();
-  // Applying the color values to the LED matrix
-  for (uint8_t y = 0; y < MATRIX_HEIGHT; y++) {
-    for (uint8_t x = 0; x < MATRIX_WIDTH; x++) {
-      led_strip[mapLeds(XY(x, y), y)] = CRGB(colorMatrix[x][y]);
-    }
-  }
-  
-  FastLED.setBrightness(brightness);
-  FastLED.show();
-  delay(200);
-}
+*/
 
 
 void rainbow() {
   brightness = 100;
   uint32_t ms = millis();
-  int32_t yHueDelta32 = ((int32_t)cos16(ms * (27 / 1)) * (350 / MATRIX_WIDTH));
-  int32_t xHueDelta32 = ((int32_t)cos16(ms * (39 / 1)) * (310 / MATRIX_HEIGHT));
-  DrawOneFrame(ms / 65536, yHueDelta32 / 32768, xHueDelta32 / 32768);
-  if (ms < 5000) {
-    FastLED.setBrightness(scale8(brightness, (ms * 256) / 5000));
+  int32_t yHueDelta32 = ((int32_t)cos16( ms * (27/1) ) * (350 / MATRIX_WIDTH));
+  int32_t xHueDelta32 = ((int32_t)cos16( ms * (39/1) ) * (310 / MATRIX_HEIGHT));
+  DrawOneFrame( ms / 65536, yHueDelta32 / 32768, xHueDelta32 / 32768);
+  if( ms < 5000 ) {
+    FastLED.setBrightness( scale8( brightness, (ms * 256) / 5000));
   } else {
     FastLED.setBrightness(brightness);
   }
-  delay(100);
 }
 
-void DrawOneFrame(uint8_t startHue8, int8_t yHueDelta8, int8_t xHueDelta8) {
+void DrawOneFrame( uint8_t startHue8, int8_t yHueDelta8, int8_t xHueDelta8) {
   uint8_t lineStartHue = startHue8;
-  for (uint8_t y = 0; y < MATRIX_HEIGHT; y++) {
+  for( uint8_t y = 0; y < MATRIX_HEIGHT; y++) {
     lineStartHue += yHueDelta8;
     uint8_t pixelHue = lineStartHue;      
-    for (uint8_t x = 0; x < MATRIX_WIDTH; x++) {
+    for( uint8_t x = 0; x < MATRIX_WIDTH; x++) {
       pixelHue += xHueDelta8;
-      led_strip[mapLeds(XY(x, y), y)]  = CHSV(pixelHue, 255, 255);
+      led_strip[mapLeds(XY(x, y), y)]  = CHSV( pixelHue, 255, 255);
     }
   }
 }
+
 
 // ------------------------------------ LEDS ------------------------------------
 int mapLeds(uint8_t index, uint8_t y) {

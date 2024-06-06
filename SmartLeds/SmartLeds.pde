@@ -83,7 +83,7 @@ final int MATRIX_WIDTH = 20;
 final int MATRIX_HEIGHT = 10;
 int CELL_WIDTH;
 int CELL_HEIGHT;
-String[][] ledMatrix = new String[MATRIX_WIDTH][MATRIX_HEIGHT];
+String[][] ledMatrix;
 String stringLedMatrix;
 
 
@@ -96,7 +96,6 @@ Serial arduino;
 Capture webcam;
 boolean webcamOn;
 PImage frame;
-int lastFrameMillis;
 
 
 
@@ -137,9 +136,9 @@ int cwY;
 void setup() {
   // ----------------------- SERIAL ARDUINO ----------------------- //
   
-  printArray(Serial.list());
+  // printArray(Serial.list());
   String portName = Serial.list()[4];
-  arduino = new Serial(this, portName, 9600);
+  arduino = new Serial(this, portName, 115200);
   arduino.clear();
   
   // ----------------------- WEB CAM ----------------------- //
@@ -368,13 +367,13 @@ void draw() {
   
   drawApp();
   
-  //  == true && (millis() - lastFrameMillis) > 750
+  
   if (webcamOn) {
     sendMovMatrix();
-    //delay(200);
+    delay(200);
   }
   
-  //delay(200);
+  //delay(150);
 
 }
 
@@ -526,7 +525,7 @@ void sendMode() {
   switch (mode) {
     case 2:
       sendMovMatrix();
-      //delay(200);
+      delay(200);
       break;
     default:
       arduino.write(modes[mode]+"\n");
@@ -568,7 +567,6 @@ void sendMovMatrix() {
     }
     
     arduino.write('\r'); // Send carriage return to indicate end of transmission
-    lastFrameMillis = millis();
     println(stringLedMatrix);
     
     delay(500); // Adjust delay to control the sending rate
@@ -610,7 +608,6 @@ void calculateMatrixColors() {
         ledMatrix[invert_x][j] = "000000"; // Black in hex
       } else {
         ledMatrix[invert_x][j] = hex(closestColor, 6); // Closest color in hex
-        println(closestColor);
       }
     }
   }
