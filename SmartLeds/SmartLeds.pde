@@ -106,6 +106,7 @@ Button powerButton;
 Button minusBrightButton;
 Button plusBrightButton;
 
+Toggle lastMode;
 
 
 
@@ -329,9 +330,16 @@ void setup() {
         println("p: "+power);
         if (!power) {
           for(Toggle toggle : mainMenuToggles) {
-            toggle.setState(false);
+            if (toggle.getState()) {
+              lastMode = toggle;
+              toggle.setState(false);
+            }
           }
         }
+        else {
+          lastMode.setState(true);
+        }
+        
         sendPower();
       }
     }    
@@ -509,6 +517,7 @@ void sendMode() {
 
 void sendPower() {
   if (power) {
+   
     arduino.write("power_on\n");
   }
   else {

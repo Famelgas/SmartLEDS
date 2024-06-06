@@ -1,3 +1,10 @@
+
+
+
+
+
+
+
 #include <FastLED.h>
 
 // ---------------------- PINS ----------------------
@@ -41,9 +48,16 @@ CRGB led_strip[ NUM_LEDS ];
 // ---------------------- PROCESSING ----------------------
 
 int mode;
+int lastMode;
 bool power;
 int brightness;
 int pickedColor[3];
+
+
+// ---------------------- SENSORS ----------------------
+
+#define MIN_DIST 20
+#define MAX_DIST 150
 
 
 
@@ -56,10 +70,9 @@ void setup() {
 
   pinMode(TRIGGER_PIN, OUTPUT);
   pinMode(ECHO_PIN, INPUT);
-  pinMode(MICROPHONE_PIN, INPUT);
 
   power = true;
-  mode=0;
+  mode=2;
   brightness = 200;
   pickedColor[0] = 255;
   pickedColor[1] = 138;
@@ -82,7 +95,32 @@ void loop() {
     if (receivedChar == '\n') {
       readSerial.trim();
 
-      processCommand(readSerial);
+      if (readSerial == "power_on") {
+        power = true;
+        mode = lastMode;
+      } else if (readSerial == "power_off") {
+        lastMode = mode;
+        power = false;
+      } else if (readSerial == "brightness_down") {
+        if (brightness >= 30) {
+          brightness -= 25;
+        }
+      } else if (readSerial == "brightness_up") {
+        if (brightness <= 230) {
+          brightness += 25;
+        }
+      } else if (readSerial.startsWith("picked_color:")) {
+        parsePickedColor(readSerial);
+      } else if (readSerial == "mode_solid") {
+        mode = 0;
+      } else if (readSerial == "mode_proximity") {
+        mode = 1;
+      } else if (readSerial == "mode_brightness") {
+        mode = 2;
+      } else if (readSerial == "mode_rainbow") {
+        mode = 3;
+      }
+      Serial.flush(); // Clear the buffer after processing
       readSerial = "";
       break;
     }
@@ -97,12 +135,11 @@ void loop() {
         break;
 
       case 1: // Proximity Reaction
-        // proximityReaction();
-        solid(CRGB(200, 0, 200));
+        proximityReaction();
         break;
 
       case 2: // Brightness Reaction
-        // brightnessReaction();
+        brightnessReaction();
         break;
 
       case 3: // rainbow
@@ -113,39 +150,15 @@ void loop() {
         fill_solid(led_strip, NUM_LEDS, CRGB(CRGB::Orange));
         break;
     }
+    FastLED.setBrightness(brightness);
+  }
+  else {
+    FastLED.clear();
+    FastLED.setBrightness(0);
   }
   
   FastLED.show(); // Display the updated LEDs
 }
-
-
-// ------------------------------------ COMMUNICATION ------------------------------------
-
-void processCommand(String command) {
-  if (command == "power_on") {
-    power = true;
-  } else if (command == "power_off") {
-    power = false;
-  } else if (command == "brightness_down") {
-    if (brightness >= 30) {
-      brightness -= 25;
-    }
-  } else if (command == "brightness_up") {
-    if (brightness <= 230) {
-      brightness += 25;
-    }
-  } else if (command.startsWith("picked_color:")) {
-    parsePickedColor(command);
-  } else if (command == "mode_solid") {
-    mode = 0;
-  } else if (command == "mode_soundReact") {
-    mode = 1;
-  } else if (command == "mode_rainbow") {
-    mode = 3;
-  }
-  Serial.flush(); // Clear the buffer after processing
-}
-
 
 
 // -------------------------------------------------------------------------------
@@ -208,47 +221,63 @@ void DrawOneFrame( uint8_t startHue8, int8_t yHueDelta8, int8_t xHueDelta8) {
 
 
 void proximityReaction() {
-  // Trigger the ultrasonic sensor to measure distance
-  digitalWrite(TRIGGER_PIN, LOW); 
+  
+  digitalWrite(TRIGGER_PIN, LOW);
   delayMicroseconds(2);
-  digitalWrite(TRIGGER_PIN, HIGH); 
+  digitalWrite(TRIGGER_PIN, HIGH);
   delayMicroseconds(10);
   digitalWrite(TRIGGER_PIN, LOW);
-  echo_time = pulseIn(ECHO_PIN, HIGH, 30000);
-  distance = (echo_time * 0.034) / 2;
+  
+  long duration, distance;
 
-  FastLED.clear();
+  duration = pulseIn(ECHO_PIN, HIGH);
+  distance = (duration/2) / 29.1;
+  
+  uint8_t hue = map(distance, MIN_DIST, MAX_DIST, 0, 255);
   
 
-  if (distance >= min_distance && distance <= max_distance) {
-    if (distance >= low_reaction_dist) {
-      int row = 3;
-      for (int i = ROW3_COL1; i <= ROW3_COL6 && row > 0; i++) {
-        led_strip[i] = CRGB(CRGB::White);
-        row--;
-      }
-    }
+  FastLED.clear();
+  if (distance >= MIN_DIST && distance <= MAX_DIST) {
+    pickedColor[0] = hue;
+    pickedColor[1] = 255;
+    pickedColor[2] = brightness;
 
-    if (distance <= medium_reaction_dist) {
-      int row = 2;
-      for (int i = ROW2_COL1; i >= ROW2_COL6 && row > 0; i--) {
-        led_strip[i] = CRGB(CRGB::White);
-        row--; 
-      }
-    }
-
-    if (distance <= high_reaction_dist) {
-      int row = 1;
-      for (int i = ROW1_COL1; i <= ROW1_COL6 && row > 0; i++) {
-        led_strip[i] = CRGB(CRGB::White);
-        row--; 
-      }
-    }
+    solid(CHSV(pickedColor[0], pickedColor[1], pickedColor[2]));
+  
+  } 
+  else {
+    solid(CRGB(0 ,0, 0));
   }
-
-  delay(10);
+  
+  FastLED.setBrightness(brightness);
+  delay(25);
 }
 
+
+void brightnessReaction() {
+  FastLED.clear();
+  int lightOff[3] = {0, 0, 0};
+  int light = analogRead(A0);
+  
+  if(light > 600) { // If it is bright...
+    brightness == 0;
+    solid(CRGB(lightOff[0], lightOff[1], lightOff[2]));
+  }
+  else if(light > 50 && light < 600) { // If  it is average light...
+    brightness = map(light, 50, 600, 220, 20);    
+    solid(CRGB(pickedColor[0], pickedColor[1], pickedColor[2]));
+  }
+  else { // If it's dark...
+    brightness = 200;
+    solid(CRGB(pickedColor[0], pickedColor[1], pickedColor[2]));
+  }
+
+
+  FastLED.setBrightness(brightness);
+  delay(25);
+
+
+}
 
 
 // ------------------------------------ LEDS ------------------------------------
@@ -265,3 +294,4 @@ int mapLeds(uint8_t index, uint8_t y) {
   if (y == 9) return map(index, 180, 199, 208, 227);
   return -1; // Invalid index
 }
+
