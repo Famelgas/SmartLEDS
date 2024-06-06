@@ -86,7 +86,7 @@ void loop() {
         ledMatrixData += readSerial;
         readSerial = "";
         
-        //mode = 2;
+        mode = 2;
         break;
       } else if (receivedChar == '\n') { // End of a chunk
         ledMatrixData += readSerial;
@@ -103,7 +103,7 @@ void loop() {
           receivingMatrixData = true;
           ledMatrixData = readSerial;
           readSerial = "";
-          mode = 2;
+          //mode = 2;
         } else {
           processCommand(readSerial);
           readSerial = "";
@@ -114,7 +114,7 @@ void loop() {
   }
 
   Serial.flush();
-  
+
   if (power) {
     switch (mode) {
       case 0: // solid color
@@ -194,7 +194,7 @@ void solid(const struct CRGB & color) {
     }
   }
   FastLED.setBrightness(brightness);
-  delay(25);
+  delay(100);
 }
 
 void solid(const struct CHSV & color) {
@@ -204,7 +204,7 @@ void solid(const struct CHSV & color) {
     }
   }
   FastLED.setBrightness(brightness);
-  delay(25);
+  delay(100);
 }
 
 
@@ -217,29 +217,34 @@ void movReact(String data) {
   int colorIndex = 0; // To keep track of the color sets
   int nextSemicolon = 0;
 
+  // Parsing the color matrix data into a 2D array
   for (int x = 0; x < MATRIX_WIDTH; x++) {
     for (int y = 0; y < MATRIX_HEIGHT; y++) {
       nextSemicolon = ledMatrixData.indexOf(';', colorIndex);
+      if (nextSemicolon == -1) break; // Handle parsing errors gracefully
+
       ledMatrixData.substring(colorIndex, nextSemicolon).toCharArray(colorMatrix[x][y], 12);
       colorIndex = nextSemicolon + 1;
     }
   }
 
+  // Applying the color values to the LED matrix
   for (uint8_t y = 0; y < MATRIX_HEIGHT; y++) {
     for (uint8_t x = 0; x < MATRIX_WIDTH; x++) {
       char* colorStr = colorMatrix[x][y];
       int r = atoi(strtok(colorStr, ","));
       int g = atoi(strtok(NULL, ","));
-      int b = atoi(strtok(NULL, ","));
-      
+      int b = atoi(strtok(NULL, ";")); // Changed to ';' to indicate the end of the color data
+
       led_strip[mapLeds(XY(x, y), y)] = CRGB(r, g, b);
     }
   }
 
   FastLED.setBrightness(brightness);
   FastLED.show();
-  delay(25);
+  delay(200);
 }
+
 
 
 
@@ -274,6 +279,7 @@ void rainbow() {
   } else {
     FastLED.setBrightness(brightness);
   }
+  delay(100);
 }
 
 void DrawOneFrame( uint8_t startHue8, int8_t yHueDelta8, int8_t xHueDelta8) {

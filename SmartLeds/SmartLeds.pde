@@ -96,6 +96,7 @@ Serial arduino;
 Capture webcam;
 boolean webcamOn;
 PImage frame;
+int lastFrameMillis;
 
 
 
@@ -367,13 +368,13 @@ void draw() {
   
   drawApp();
   
-  
-  if (webcamOn) {
+  /*
+  if (webcamOn == true && (millis() - lastFrameMillis) > 750) {
     sendMovMatrix();
-    delay(200);
+    //delay(200);
   }
-  
-  //delay(150);
+  */
+  delay(200);
 
 }
 
@@ -525,7 +526,7 @@ void sendMode() {
   switch (mode) {
     case 2:
       sendMovMatrix();
-      delay(200);
+      //delay(200);
       break;
     default:
       arduino.write(modes[mode]+"\n");
@@ -563,10 +564,11 @@ void sendMovMatrix() {
       int end = min(i + chunkSize, dataLength);
       String chunk = stringLedMatrix.substring(i, end);
       arduino.write(chunk + '\n'); // Send chunk with newline
-      delay(50); // Adjust delay as needed
+      delay(100); // Adjust delay as needed
     }
     
     arduino.write('\r'); // Send carriage return to indicate end of transmission
+    lastFrameMillis = millis();
     println(stringLedMatrix);
     
     delay(500); // Adjust delay to control the sending rate
