@@ -86,7 +86,8 @@ void loop() {
         readSerial = "";
         
         parseLedMatrix(ledMatrixData, colorMatrix); // Parse the received data
-        mode = 2;
+        ledMatrixData = "";
+        delay(100);
         //break;
       } else if (receivedChar == '\n') { // End of a chunk
         ledMatrixData += readSerial;
@@ -103,6 +104,7 @@ void loop() {
           receivingMatrixData = true;
           ledMatrixData = readSerial;
           readSerial = "";
+          mode = 2;
         } else {
           processCommand(readSerial);
           readSerial = "";
