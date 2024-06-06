@@ -83,7 +83,7 @@ final int MATRIX_WIDTH = 20;
 final int MATRIX_HEIGHT = 10;
 int CELL_WIDTH;
 int CELL_HEIGHT;
-String[][] ledMatrix;
+String[][] ledMatrix = new String[MATRIX_WIDTH][MATRIX_HEIGHT];
 String stringLedMatrix;
 
 
@@ -137,7 +137,7 @@ int cwY;
 void setup() {
   // ----------------------- SERIAL ARDUINO ----------------------- //
   
-  // printArray(Serial.list());
+  printArray(Serial.list());
   String portName = Serial.list()[4];
   arduino = new Serial(this, portName, 9600);
   arduino.clear();
@@ -368,13 +368,13 @@ void draw() {
   
   drawApp();
   
-  /*
-  if (webcamOn == true && (millis() - lastFrameMillis) > 750) {
+  //  == true && (millis() - lastFrameMillis) > 750
+  if (webcamOn) {
     sendMovMatrix();
     //delay(200);
   }
-  */
-  delay(200);
+  
+  //delay(200);
 
 }
 
@@ -585,7 +585,7 @@ void updateLedMatrixString() {
   stringLedMatrix = "mode_moveReact:";
   for (int i = 0; i < MATRIX_WIDTH; i++) {
     for (int j = 0; j < MATRIX_HEIGHT; j++) {
-      stringLedMatrix += ledMatrix[i][j] + ";";
+      stringLedMatrix += "0x" + ledMatrix[i][j] + ";";
     }
   }
 }
@@ -607,9 +607,10 @@ void calculateMatrixColors() {
       
       // If the closest color distance is above a threshold, set it to black
       if (colorDistance(c, closestColor) > 100) { // Adjust the threshold as needed
-        ledMatrix[invert_x][j] = hex(color(0, 0, 0)); // Black in hex
+        ledMatrix[invert_x][j] = "000000"; // Black in hex
       } else {
-        ledMatrix[invert_x][j] = hex(closestColor); // Closest color in hex
+        ledMatrix[invert_x][j] = hex(closestColor, 6); // Closest color in hex
+        println(closestColor);
       }
     }
   }

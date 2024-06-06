@@ -71,9 +71,10 @@ void setup() {
 void loop() {
   FastLED.clear();
 
+  uint32_t colorMatrix[MATRIX_WIDTH][MATRIX_HEIGHT];
+  
   String readSerial = "";
   String ledMatrixData = "";
-  char colorMatrix[MATRIX_WIDTH][MATRIX_HEIGHT][12]; // Changed to char array
   bool receivingMatrixData = false;
 
   while (Serial.available() > 0) {
@@ -88,7 +89,6 @@ void loop() {
         parseLedMatrix(ledMatrixData, colorMatrix); // Parse the received data
         ledMatrixData = "";
         delay(100);
-        //break;
       } else if (receivedChar == '\n') { // End of a chunk
         ledMatrixData += readSerial;
         readSerial = "";
@@ -108,7 +108,6 @@ void loop() {
         } else {
           processCommand(readSerial);
           readSerial = "";
-          //break;
         }
       }
     }
@@ -201,39 +200,32 @@ void solid(const struct CHSV & color) {
   delay(100);
 }
 
-void parseLedMatrix(String data, char colorMatrix[MATRIX_WIDTH][MATRIX_HEIGHT][12]) {
-  int start_tk = data.indexOf(":") + 1; // Start after the "mode_moveReact:" prefix
+
+void parseLedMatrix(String data, uint32_t colorMatrix[MATRIX_WIDTH][MATRIX_HEIGHT]) {
+  int start_tk = data.indexOf(":") + 1;
   String ledMatrixData = data.substring(start_tk);
-
+  
   int colorIndex = 0; // To keep track of the color sets
-  int nextSemicolon = 0;
 
-  // Parsing the color matrix data into a 2D array
   for (int x = 0; x < MATRIX_WIDTH; x++) {
     for (int y = 0; y < MATRIX_HEIGHT; y++) {
-      nextSemicolon = ledMatrixData.indexOf(';', colorIndex);
-      if (nextSemicolon == -1) break; // Handle parsing errors gracefully
-
-      String colorStr = ledMatrixData.substring(colorIndex, nextSemicolon);
-      colorStr.toCharArray(colorMatrix[x][y], 12); // Convert string to char array
+      int nextSemicolon = ledMatrixData.indexOf(';', colorIndex);
+      colorMatrix[x][y] = strtoul(ledMatrixData.substring(colorIndex, nextSemicolon).c_str(), NULL, 16);
       colorIndex = nextSemicolon + 1;
     }
   }
 }
 
-void movReact(char colorMatrix[MATRIX_WIDTH][MATRIX_HEIGHT][12]) {
+
+void movReact(uint32_t colorMatrix[MATRIX_WIDTH][MATRIX_HEIGHT]) {
+  FastLED.clear();
   // Applying the color values to the LED matrix
   for (uint8_t y = 0; y < MATRIX_HEIGHT; y++) {
     for (uint8_t x = 0; x < MATRIX_WIDTH; x++) {
-      char* colorStr = colorMatrix[x][y];
-      int r = atoi(strtok(colorStr, ","));
-      int g = atoi(strtok(NULL, ","));
-      int b = atoi(strtok(NULL, ";")); // Changed to ';' to indicate the end of the color data
-
-      led_strip[mapLeds(XY(x, y), y)] = CRGB(r, g, b);
+      led_strip[mapLeds(XY(x, y), y)] = CRGB(colorMatrix[x][y]);
     }
   }
-
+  
   FastLED.setBrightness(brightness);
   FastLED.show();
   delay(200);
