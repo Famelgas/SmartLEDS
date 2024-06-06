@@ -4,7 +4,6 @@
 #define LED_DATA_IN_PIN 3 // led strip data in
 #define TRIGGER_PIN 4 // trigger
 #define ECHO_PIN 5 // echo
-#define MICROPHONE_PIN A0
 
 #define NUM_LEDS 228
 #define MATRIX_WIDTH 20 
@@ -75,41 +74,17 @@ void loop() {
   FastLED.clear();
 
   String readSerial = "";
-  String ledMatrixData = "";
-  bool receivingMatrixData = false;
+
   while (Serial.available() > 0) {
     char receivedChar = (char)Serial.read();
-    
-    if (receivingMatrixData) {
-      if (receivedChar == '\r') { // End of full data transmission
-        receivingMatrixData = false;
-        ledMatrixData += readSerial;
-        readSerial = "";
-        
-        //mode = 2;
-        break;
-      } else if (receivedChar == '\n') { // End of a chunk
-        ledMatrixData += readSerial;
-        readSerial = "";
-      } else {
-        readSerial += receivedChar;
-      }
-    } else {
-      readSerial += receivedChar;
-      if (receivedChar == '\n') {
-        readSerial.trim();
-        
-        if (readSerial.startsWith("mode_moveReact:")) {
-          receivingMatrixData = true;
-          ledMatrixData = readSerial;
-          readSerial = "";
-          mode = 2;
-        } else {
-          processCommand(readSerial);
-          readSerial = "";
-          break;
-        }
-      }
+  
+    readSerial += receivedChar;
+    if (receivedChar == '\n') {
+      readSerial.trim();
+
+      processCommand(readSerial);
+      readSerial = "";
+      break;
     }
   }
 
@@ -121,15 +96,13 @@ void loop() {
         solid(CRGB(pickedColor[0], pickedColor[1], pickedColor[2]));
         break;
 
-      case 1: // sound reaction
-        // soundReact();
+      case 1: // Proximity Reaction
+        // proximityReaction();
         solid(CRGB(200, 0, 200));
         break;
 
-      case 2: // movement reaction
-        // Process the accumulated data
-        movReact(ledMatrixData);
-        ledMatrixData = "";
+      case 2: // Brightness Reaction
+        // brightnessReaction();
         break;
 
       case 3: // rainbow
@@ -208,61 +181,6 @@ void solid(const struct CHSV & color) {
 }
 
 
-void movReact(String data) {
-  char colorMatrix[MATRIX_WIDTH][MATRIX_HEIGHT][12]; // Each color string "255,255,255" + null terminator
-
-  int start_tk = data.indexOf(":") + 1; // Start after the "mode_moveReact:" prefix
-  String ledMatrixData = data.substring(start_tk);
-
-  int colorIndex = 0; // To keep track of the color sets
-  int nextSemicolon = 0;
-
-  for (int x = 0; x < MATRIX_WIDTH; x++) {
-    for (int y = 0; y < MATRIX_HEIGHT; y++) {
-      nextSemicolon = ledMatrixData.indexOf(';', colorIndex);
-      ledMatrixData.substring(colorIndex, nextSemicolon).toCharArray(colorMatrix[x][y], 12);
-      colorIndex = nextSemicolon + 1;
-    }
-  }
-
-  for (uint8_t y = 0; y < MATRIX_HEIGHT; y++) {
-    for (uint8_t x = 0; x < MATRIX_WIDTH; x++) {
-      char* colorStr = colorMatrix[x][y];
-      int r = atoi(strtok(colorStr, ","));
-      int g = atoi(strtok(NULL, ","));
-      int b = atoi(strtok(NULL, ","));
-      
-      led_strip[mapLeds(XY(x, y), y)] = CRGB(r, g, b);
-    }
-  }
-
-  FastLED.setBrightness(brightness);
-  FastLED.show();
-  delay(25);
-}
-
-
-
-/*
-void parseLedMatrix(String data) {
-  String colorMatrix[MATRIX_WIDTH][MATRIX_HEIGHT];
-
-  int start_tk = data.indexOf(":") + 1; // Start after the "mode_moveReact:" prefix
-  String ledMatrixData = data.substring(start_tk);
-  
-  int colorIndex = 0; // To keep track of the color sets
-
-  for (int x = 0; x < MATRIX_WIDTH; x++) {
-    for (int y = 0; y < MATRIX_HEIGHT; y++) {
-      int nextSemicolon = ledMatrixData.indexOf(';', colorIndex);
-      colorMatrix[x][y] = ledMatrixData.substring(colorIndex, nextSemicolon);
-      colorIndex = nextSemicolon + 1;
-    }
-  }
-}
-*/
-
-
 void rainbow() {
   brightness = 100;
   uint32_t ms = millis();
@@ -287,6 +205,50 @@ void DrawOneFrame( uint8_t startHue8, int8_t yHueDelta8, int8_t xHueDelta8) {
     }
   }
 }
+
+
+void proximityReaction() {
+  // Trigger the ultrasonic sensor to measure distance
+  digitalWrite(TRIGGER_PIN, LOW); 
+  delayMicroseconds(2);
+  digitalWrite(TRIGGER_PIN, HIGH); 
+  delayMicroseconds(10);
+  digitalWrite(TRIGGER_PIN, LOW);
+  echo_time = pulseIn(ECHO_PIN, HIGH, 30000);
+  distance = (echo_time * 0.034) / 2;
+
+  FastLED.clear();
+  
+
+  if (distance >= min_distance && distance <= max_distance) {
+    if (distance >= low_reaction_dist) {
+      int row = 3;
+      for (int i = ROW3_COL1; i <= ROW3_COL6 && row > 0; i++) {
+        led_strip[i] = CRGB(CRGB::White);
+        row--;
+      }
+    }
+
+    if (distance <= medium_reaction_dist) {
+      int row = 2;
+      for (int i = ROW2_COL1; i >= ROW2_COL6 && row > 0; i--) {
+        led_strip[i] = CRGB(CRGB::White);
+        row--; 
+      }
+    }
+
+    if (distance <= high_reaction_dist) {
+      int row = 1;
+      for (int i = ROW1_COL1; i <= ROW1_COL6 && row > 0; i++) {
+        led_strip[i] = CRGB(CRGB::White);
+        row--; 
+      }
+    }
+  }
+
+  delay(10);
+}
+
 
 
 // ------------------------------------ LEDS ------------------------------------

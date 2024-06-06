@@ -190,13 +190,15 @@ void setup() {
   uiComponents[3] = "label_";
 
   modes[0] = "mode_solid";
-  modes[1] = "mode_soundReact";
-  modes[2] = "mode_moveReact";
+  modes[1] = "mode_proximity";
+  modes[2] = "mode_brightness";
   modes[3] = "mode_rainbow";
+  //modes[4] = "mode_blob";
+  
 
   label_names[0] = "Solid Color";
-  label_names[1] = "Sound Reaction";
-  label_names[2] = "Movement Reaction";
+  label_names[1] = "Proximity Reaction";
+  label_names[2] = "Brightness Reaction";
   label_names[3] = "Rainbow";
 
   images[0] = loadImage("toggle-off.png");
@@ -280,26 +282,9 @@ void setup() {
       public void controlEvent(CallbackEvent theEvent) {
         if (theEvent.getAction() == ControlP5.ACTION_PRESS) {
           if (toggle.getState()) {
-            if (toggle.equals(mainMenuToggles[2])) {
-              webcamOn = true;
-              webcam.start();
-            }
-            
             for(Toggle off_toggle : mainMenuToggles) {
-              if (!off_toggle.equals(toggle)) {
-                if (off_toggle.equals(mainMenuToggles[2])) {
-                  webcamOn = false;
-                  webcam.stop();
-                }
+              if (!off_toggle.equals(toggle)) 
                 off_toggle.setState(false);
-              }
-            }
-            
-          }
-          else {
-            if (toggle.equals(mainMenuToggles[2])) {
-              webcamOn = false;
-              webcam.stop();
             }
           }
           mode = toggle.getId();
@@ -315,8 +300,8 @@ void setup() {
   minusBrightButton.addCallback(new CallbackListener() {
     public void controlEvent(CallbackEvent theEvent) {
       if (theEvent.getAction() == ControlP5.ACTION_PRESS) {
-        if (brightness > 10) {
-          brightness--;
+        if (brightness >= 30) {
+          brightness -= 25;
         }
         sendBrightness("down");
       }  
@@ -328,8 +313,8 @@ void setup() {
   plusBrightButton.addCallback(new CallbackListener() {
     public void controlEvent(CallbackEvent theEvent) {
       if (theEvent.getAction() == ControlP5.ACTION_PRESS) {
-        if (brightness < 10) {
-          brightness++;
+        if (brightness <= 230) {
+          brightness += 25;
         }
         sendBrightness("up");
       };
@@ -342,10 +327,12 @@ void setup() {
       if (theEvent.getAction() == ControlP5.ACTION_PRESS) {
         power = !power;
         println("p: "+power);
-        sendPower();
-        for(Toggle toggle : mainMenuToggles) {
-          toggle.setState(false);
+        if (!power) {
+          for(Toggle toggle : mainMenuToggles) {
+            toggle.setState(false);
+          }
         }
+        sendPower();
       }
     }    
   });
@@ -367,11 +354,6 @@ void draw() {
   
   drawApp();
   
-  
-  if (webcamOn) {
-    sendMovMatrix();
-    delay(200);
-  }
   
   //delay(150);
 
@@ -522,15 +504,7 @@ void sendModeOff() {
 */
 
 void sendMode() {
-  switch (mode) {
-    case 2:
-      sendMovMatrix();
-      delay(200);
-      break;
-    default:
-      arduino.write(modes[mode]+"\n");
-      break;
-  }
+    arduino.write(modes[mode]+"\n");
 }
 
 void sendPower() {
@@ -557,22 +531,44 @@ void sendMovMatrix() {
     updateLedMatrixString();
     
     int chunkSize = 64; // Adjust based on Arduino's buffer size
-    int dataLength = stringLedMatrix.length();
+    //int dataLength = stringLedMatrix.length();
     
-    for (int i = 0; i < dataLength; i += chunkSize) {
-      int end = min(i + chunkSize, dataLength);
-      String chunk = stringLedMatrix.substring(i, end);
-      arduino.write(chunk + '\n'); // Send chunk with newline
-      delay(50); // Adjust delay as needed
+    int chunkFull = 0;
+    for (int i = 0; i < MATRIX_WIDTH; i++) {
+      for (int j = 0; j < MATRIX_HEIGHT; j++) {
+        if (chunkFull >= chunkSize) {
+          waitForConfirmation("chunk_received");
+          chunkFull = 0;
+        }
+        arduino.write(ledMatrix[i][j]);
+        chunkFull += ledMatrix[i][j].length();
+      }
     }
+      
+    delay(50); // Adjust delay as needed
     
     arduino.write('\r'); // Send carriage return to indicate end of transmission
+    
+    // Wait for confirmation from Arduino
+    waitForConfirmation("led_matrix_updated");
+    
     println(stringLedMatrix);
     
-    delay(500); // Adjust delay to control the sending rate
+    //delay(500); // Adjust delay to control the sending rate
   }
 }
 
+void waitForConfirmation(String confirmationMessage) {
+  while (true) {
+    while (arduino.available() > 0) {
+      String message = arduino.readStringUntil('\n');
+      if (message.equals(confirmationMessage)) {
+        println(confirmationMessage);
+        return; // Confirmation received
+      }
+    }
+  }
+}
 
 
 
@@ -605,9 +601,9 @@ void calculateMatrixColors() {
       
       // If the closest color distance is above a threshold, set it to black
       if (colorDistance(c, closestColor) > 100) { // Adjust the threshold as needed
-        ledMatrix[invert_x][j] = "000000"; // Black in hex
+        ledMatrix[invert_x][j] = "0x000000;"; // Black in hex
       } else {
-        ledMatrix[invert_x][j] = hex(closestColor, 6); // Closest color in hex
+        ledMatrix[invert_x][j] = "0x" + hex(closestColor, 6) + "\n"; // Closest color in hex
       }
     }
   }
