@@ -264,7 +264,7 @@ void brightnessReaction() {
     solid(CRGB(lightOff[0], lightOff[1], lightOff[2]));
   }
   else if(light > 50 && light < 600) { // If  it is average light...
-    brightness = map(light, 50, 600, 220, 20);    
+    brightness = map(light, 50, 600, 200, 20);    
     solid(CRGB(pickedColor[0], pickedColor[1], pickedColor[2]));
   }
   else { // If it's dark...
