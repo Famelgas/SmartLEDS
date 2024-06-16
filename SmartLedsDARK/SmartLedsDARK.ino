@@ -23,9 +23,9 @@ int pickedColor[3];
 void setup() {
   Serial.begin(115200);
 
-  ledsOn = true;
+  ledsOn = false;
   mode=0;
-  brightness = 200;
+  brightness = 50;
   pickedColor[0] = 255;
   pickedColor[1] = 138;
   pickedColor[2] = 18;
@@ -153,7 +153,26 @@ void solid(const struct CRGB & color) {
   delay(25);
 }
 
-
-
-
+/*
+void movReact() {
+  // Use the parsed colorMatrix
+  FastLED.clear();
+  for (uint8_t y = 0; y < MATRIX_HEIGHT; y++) {
+    for (uint8_t x = 0; x < MATRIX_WIDTH; x++) {
+      String colorStr = colorMatrix[x][y];
+      int firstComma = colorStr.indexOf(',');
+      int secondComma = colorStr.indexOf(',', firstComma + 1);
+      
+      int r = colorStr.substring(0, firstComma).toInt();
+      int g = colorStr.substring(firstComma + 1, secondComma).toInt();
+      int b = colorStr.substring(secondComma + 1).toInt();
+      
+      led_strip[mapLeds(XY(x, y), y)] = CRGB(r, g, b);
+    }
+  }
+  FastLED.setBrightness(brightness);
+  FastLED.show();
+  delay(25);
+}
+*/
 
