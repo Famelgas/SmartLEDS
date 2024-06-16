@@ -72,7 +72,7 @@ void setup() {
   pinMode(ECHO_PIN, INPUT);
 
   power = true;
-  mode=2;
+  mode=0;
   brightness = 200;
   pickedColor[0] = 255;
   pickedColor[1] = 138;
@@ -258,8 +258,6 @@ void brightnessReaction() {
   FastLED.clear();
   int lightOff[3] = {0, 0, 0};
   int light = analogRead(A0);
-
-  Serial.println(light);
   
   if(light > 600) { // too bright - off
     brightness == 0;
