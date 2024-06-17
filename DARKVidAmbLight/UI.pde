@@ -114,7 +114,14 @@ void initUI() {
     public void controlEvent(CallbackEvent theEvent) {
       if (theEvent.getAction() == ControlP5.ACTION_PRESS) {
         sendReplay();
+        
+        if (!playPauseToggle.getState())
+          playPauseToggle.toggle();
+        
+        play = true;
+        
         title.jump(0.0);
+        title.play();
       };
     }
   });
@@ -189,47 +196,47 @@ void initUI() {
 void updateSelectedColors(int toggle, boolean selected) {
   arduino.write("sc:" + toggle + ":" + int(selected) + "\n");
   
-  delay(10);
+  delay(25);
 }
 
-void sendColorPaletteColor(int cpColor) {
-  arduino.write("cp:" + cpColor + ":0x" + hex(colorPalette[cpColor]) + "\n");
-  delay(10);
+void sendColorPaletteColor(int colorIndex) {
+  arduino.write("cp:" + colorIndex + ":0x" + hex(colorPalette[colorIndex], 6) + "\n");
+  delay(25);
 }
 
 // --------------------------------------------------------------------------------------------------------------- SEND BRIGHTNESS
 void sendBrightness(String up_down) {
   arduino.write("bright" + up_down + "\n");
-  delay(10);
+  delay(25);
 }
 
 
 // --------------------------------------------------------------------------------------------------------------- SEND ON / OFF
 void sendLedsOnOff() {
   if (ledsOn)
-    arduino.write("ledsOn");
+    arduino.write("ledsOn\n");
   else
-    arduino.write("ledsOff");
+    arduino.write("ledsOff\n");
   
-  delay(10);
+  delay(25);
 }
 
 
 // --------------------------------------------------------------------------------------------------------------- SEND REPLAY
 void sendReplay() {
-  arduino.write("replay");
-  delay(10);
+  arduino.write("replay\n");
+  delay(25);
 }
 
 
 // --------------------------------------------------------------------------------------------------------------- SEND PLAY / PAUSE
 void sendPlayPause() {
   if (play)
-    arduino.write("play");
+    arduino.write("play\n");
   else
-    arduino.write("pause");
+    arduino.write("pause\n");
     
-  delay(10);
+  delay(25);
 }
 
 
@@ -241,11 +248,7 @@ void drawUI() {
   
   cl_palette.draw();
   
-  //final int COLOR_WIDTH = 150;
-  //final int COLOR_HEIGHT = 160;
-  //final int HORIZONTAL_SPACE = 20;
-  //final int CP_VERTICAL_SPACE = 30;
-    // COLOR PALETTE COLORS
+  // COLOR PALETTE COLORS
   int index = 0;
   for (int row = 1; row <= 2; row++) {
     for (int col = 1; col <= COLOR_PALETTE_SIZE / 2; col++) {

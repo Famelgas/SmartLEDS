@@ -26,16 +26,17 @@ boolean play;
 
 void setup() {
   size(1080, 810);
+  
+    //printArray(Serial.list());
+  String portName = Serial.list()[4];
+  arduino = new Serial(this, portName, 115200);
+  arduino.clear();
 
   ledsOn = false;
   play = false;
   initUI();
   drawUI();
 
-  //printArray(Serial.list());
-  String portName = Serial.list()[4];
-  arduino = new Serial(this, portName, 115200);
-  arduino.clear();
   
   for (int i = 0; i < COLOR_PALETTE_SIZE; i++) {
     sendColorPaletteColor(i);
@@ -48,11 +49,12 @@ void setup() {
   
   
   title = new Movie(this, "gow3.mp4");
-  title.frameRate(1);
+  //title.frameRate(1);
 
-  //title.loop();
-  //title.pause();
-  //title.jump(0.0);
+  title.loop();
+  title.jump(0.0);
+  title.pause();
+  
   
 }
 

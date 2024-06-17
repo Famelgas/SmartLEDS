@@ -49,7 +49,7 @@ void loop() {
     if (play) {
       FastLED.setBrightness(brightness);
     } else
-      solid(CRGB(0xE72388));
+      solid(CRGB(colorPalette[0]));
       FastLED.setBrightness(brightness);
   } else {
     solid(CRGB(0x000000));
@@ -65,8 +65,9 @@ void loop() {
 
 void readInfo() {
   String readSerial = "";
-  while (Serial.available() > 0) {
-    char receivedChar = (char)Serial.read();
+  // while there's any serial available, read it:
+  while (Serial.available() > 0) {pha
+    readSerial = Serial.readStringUntil('\n');
 
     readSerial += receivedChar;
     if (receivedChar == '\n') {
@@ -79,11 +80,15 @@ void readInfo() {
       } else if (readSerial == "ledsOff") {
         ledsOn = false;
       } else if (readSerial == "brightDown") {
-        if (brightness >= 30)
-          brightness -= 25;
+        if (brightness > 20)
+          brightness -= 20;
+        else if (brightness <= 20 && brightness >= 10)
+          brightness -= 5;
       } else if (readSerial == "brightUp") {
-        if (brightness <= 230)
-          brightness += 25;
+        if (brightness <= 200 && brightness > 20)
+          brightness += 20;
+        else if (brightness <= 20)
+          brightness += 5;
       } else if (readSerial == "play") {
         play = true;
       } else if (readSerial == "pause") {
