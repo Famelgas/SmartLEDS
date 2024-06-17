@@ -12,6 +12,7 @@ final int COLOR_SELECTOR_WIDTH = 160;
 final int COLOR_SELECTOR_HEIGHT = 170;
 final int COLOR_WIDTH = 150;
 final int COLOR_HEIGHT = 160;
+final int COLOR_MARGIN = 5;
 
 
 final int HORIZONTAL_SPACE = 20;
@@ -23,6 +24,7 @@ final int ON_OFF_BUTTON_WIDTH = 340;
 
 
 ControlP5 ui_comps;
+ControlP5 cl_palette;
 Toggle[] colorPaletteToggles;
 Label[] mainMenuLables;
 Toggle onOffToggle, playPauseToggle;
@@ -47,6 +49,7 @@ void initUI() {
   
   
   ui_comps = new ControlP5(this);
+  cl_palette = new ControlP5(this);
   colorPaletteToggles = new Toggle[COLOR_PALETTE_SIZE];
   
   
@@ -56,7 +59,7 @@ void initUI() {
     for (int col = 1; col <= COLOR_PALETTE_SIZE / 2; col++) {
       int x = 80 + (col * HORIZONTAL_SPACE) + ((col - 1) * COLOR_SELECTOR_WIDTH);
       int y = 70 + (row * CP_VERTICAL_SPACE) + ((row - 1) * COLOR_SELECTOR_HEIGHT);
-      colorPaletteToggles[index] = ui_comps.addToggle("colorToggle" + index)
+      colorPaletteToggles[index] = cl_palette.addToggle("colorToggle" + index)
         .setPosition(x, y)
         .setSize(COLOR_SELECTOR_WIDTH, COLOR_SELECTOR_HEIGHT)
         .setImages(images[0], images[1])
@@ -80,7 +83,8 @@ void initUI() {
       
   }
   
-    
+  cl_palette.setAutoDraw(false); 
+  
   // -------------------------------------------------------------------------- BRIGHT DOWN
   int x = 370;
   int y = 550;
@@ -235,20 +239,20 @@ void drawUI() {
   fill(WRAP_BOX_COLOR);
   rect(WRAP_BOX_X, WRAP_BOX_Y, WRAP_BOX_WIDTH, WRAP_BOX_HEIGHT, 18.5);
   
+  cl_palette.draw();
   
+  //final int COLOR_WIDTH = 150;
+  //final int COLOR_HEIGHT = 160;
+  //final int HORIZONTAL_SPACE = 20;
+  //final int CP_VERTICAL_SPACE = 30;
     // COLOR PALETTE COLORS
   int index = 0;
   for (int row = 1; row <= 2; row++) {
     for (int col = 1; col <= COLOR_PALETTE_SIZE / 2; col++) {
-      int x = 80 + (col * HORIZONTAL_SPACE) + ((col - 1) * COLOR_SELECTOR_WIDTH);
-      int y = 70 + (row * CP_VERTICAL_SPACE) + ((row - 1) * COLOR_SELECTOR_HEIGHT);
-      colorPaletteToggles[index] = ui_comps.addToggle("colorToggle" + index)
-        .setPosition(x, y)
-        .setSize(COLOR_SELECTOR_WIDTH, COLOR_SELECTOR_HEIGHT)
-        .setImages(images[0], images[1])
-        .setId(index)
-        .setState(false);
-        
+      int x = 80 + (col * HORIZONTAL_SPACE) + ((col - 1) * COLOR_SELECTOR_WIDTH) + COLOR_MARGIN + COLOR_WIDTH / 2;
+      int y = 70 + (row * CP_VERTICAL_SPACE) + ((row - 1) * COLOR_SELECTOR_HEIGHT) + COLOR_MARGIN + COLOR_HEIGHT / 2;
+      fill(colorPalette[index]);
+      rect(x, y, COLOR_WIDTH, COLOR_HEIGHT, 18.5);
       index++;
     }
   }

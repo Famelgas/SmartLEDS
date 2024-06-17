@@ -1,5 +1,6 @@
 import processing.video.*;
 import processing.serial.*;
+import controlP5.*;
 
 
 final int VIDEO_WIDTH = 640;
@@ -31,7 +32,7 @@ void setup() {
   initUI();
   drawUI();
 
-  // printArray(Serial.list());
+  //printArray(Serial.list());
   String portName = Serial.list()[4];
   arduino = new Serial(this, portName, 115200);
   arduino.clear();
