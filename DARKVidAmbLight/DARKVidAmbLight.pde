@@ -1,4 +1,4 @@
-import processing.video.*;
+import processing.video.Movie;
 import processing.serial.*;
 import controlP5.*;
 
@@ -17,7 +17,9 @@ int CELL_HEIGHT = VIDEO_HEIGHT / MATRIX_HEIGHT;
 
 
 Serial arduino;
-Movie title;
+Movie video;
+boolean titleEnded;
+
 PImage frame;
 boolean ledsOn;
 boolean play;
@@ -26,7 +28,7 @@ boolean play;
 
 void setup() {
   size(1080, 810);
-  
+  frameRate(30);
     //printArray(Serial.list());
   String portName = Serial.list()[4];
   arduino = new Serial(this, portName, 115200);
@@ -48,12 +50,15 @@ void setup() {
   background(BACKGROUND_COLOR);
   
   
-  title = new Movie(this, "gow3.mp4");
-  //title.frameRate(1);
+  video = new Movie(this, "gow3.mp4");
+  
+  
+  
+  video.frameRate(2);
 
-  title.loop();
-  title.jump(0.0);
-  title.pause();
+  video.loop();
+  video.jump(0.0);
+  video.pause();
   
   
 }
@@ -64,7 +69,7 @@ void draw() {
   drawUI();
   
   if (play) {
-    title.loop();
+    video.loop();
   }
   
   

@@ -42,21 +42,74 @@ void setup() {
 // ------------------------------------------------------------------------------
 // ------------------------------------ LOOP ------------------------------------
 void loop() {
-  FastLED.clear();
+  String readSerial = "";
+  // while there's any serial available, read it:
+  while (Serial.available() > 0) {
+    FastLED.clear();
+    readSerial = Serial.readStringUntil('\n');
+  
+    if (readSerial.startsWith("cp:")) {
+      addColorPalette(readSerial);
+    } 
+    else if (readSerial == "ledsOn") {
+      ledsOn = true;
+    } 
+    else if (readSerial == "ledsOff") {
+      ledsOn = false;
+    } 
+    else if (readSerial == "brightDown") {
+      if (brightness > 20)
+        brightness -= 20;
+      else if (brightness <= 20 && brightness >= 10)
+        brightness -= 5;
+    } 
+    else if (readSerial == "brightUp") {
+      if (brightness <= 200 && brightness > 20)
+        brightness += 20;
+      else if (brightness <= 20)
+        brightness += 5;
+    } 
+    else if (readSerial == "play") {
+      play = true;
+    } 
+    else if (readSerial == "pause") {
+      play = false;
+      clearLeds();
+    } 
+    else if (readSerial == "replay") {
+      play = true;
+    } 
+    else if (readSerial.startsWith("sc:")) {
+      addColorPalette(readSerial);
+    } 
+    else if (readSerial.startsWith("fr:")) {
+      updateMatrix(readSerial);
+    } 
+    else if (readSerial.startsWith("nfr")) {
+      clearLeds();
+    }
 
-  readInfo();
-  if (ledsOn) {
-    if (play) {
-      FastLED.setBrightness(brightness);
-    } else
-      solid(CRGB(colorPalette[0]));
-      FastLED.setBrightness(brightness);
-  } else {
-    solid(CRGB(0x000000));
-    FastLED.setBrightness(0);
+
+    if (ledsOn) {
+      if (play) {
+        FastLED.setBrightness(brightness);
+      } else
+        solid(CRGB(colorPalette[0]));
+        FastLED.setBrightness(brightness);
+    } else {
+      solid(CRGB(0x000000));
+      FastLED.setBrightness(0);
+    }
+
+    FastLED.show();
+  
   }
 
-  FastLED.show();  // Display the updated LEDs
+  FastLED.clear();
+  solid(CRGB(0x000000));
+  FastLED.setBrightness(0);
+  FastLED.show();
+  
 }
 
 
@@ -64,52 +117,8 @@ void loop() {
 // ------------------------------------ SERIAL COM ------------------------------------
 
 void readInfo() {
-  String readSerial = "";
-  // while there's any serial available, read it:
-  while (Serial.available() > 0) {pha
-    readSerial = Serial.readStringUntil('\n');
+  
 
-    readSerial += receivedChar;
-    if (receivedChar == '\n') {
-      readSerial.trim();
-      
-      if (readSerial.startsWith("cp:")) {
-        addColorPalette(readSerial);
-      } else if (readSerial == "ledsOn") {
-        ledsOn = true;
-      } else if (readSerial == "ledsOff") {
-        ledsOn = false;
-      } else if (readSerial == "brightDown") {
-        if (brightness > 20)
-          brightness -= 20;
-        else if (brightness <= 20 && brightness >= 10)
-          brightness -= 5;
-      } else if (readSerial == "brightUp") {
-        if (brightness <= 200 && brightness > 20)
-          brightness += 20;
-        else if (brightness <= 20)
-          brightness += 5;
-      } else if (readSerial == "play") {
-        play = true;
-      } else if (readSerial == "pause") {
-        play = false;
-        clearLeds();
-      } else if (readSerial == "replay") {
-        play = true;
-      } else if (readSerial.startsWith("sc:")) {
-        addColorPalette(readSerial);
-      } else if (readSerial.startsWith("fr:")) {
-        updateMatrix(readSerial);
-      } else if (readSerial.startsWith("nfr")) {
-        clearLeds();
-      }
-      Serial.flush();
-      readSerial = "";
-      break;
-    }
-  }
-
-  Serial.flush();
 }
 
 

@@ -120,8 +120,8 @@ void initUI() {
         
         play = true;
         
-        title.jump(0.0);
-        title.play();
+        video.jump(0.0);
+        video.play();
       };
     }
   });
@@ -143,9 +143,9 @@ void initUI() {
         println("play: "+play);
         sendPlayPause();
         if (play)
-          title.play();
+          video.play();
         else 
-          title.pause();
+          video.pause();
       }
     }    
   });
