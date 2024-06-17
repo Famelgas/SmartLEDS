@@ -26,7 +26,7 @@ void setup() {
 
   ledsOn = false;
   play = false;
-  brightness = 200;
+  brightness = 50;
 
   for (int i = 0; i < 10; i++) {
     colorPalette[i] = 0x000000;
@@ -49,11 +49,11 @@ void loop() {
     if (play) {
       FastLED.setBrightness(brightness);
     } else
-      solid(CRGB(0xFFFF8A12));
+      solid(CRGB(0xE72388));
+      FastLED.setBrightness(brightness);
   } else {
-    FastLED.clear();
-    solid(CRGB(0xFFFF8A12));
-    FastLED.setBrightness(brightness);
+    solid(CRGB(0x000000));
+    FastLED.setBrightness(0);
   }
 
   FastLED.show();  // Display the updated LEDs
