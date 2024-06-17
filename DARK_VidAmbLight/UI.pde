@@ -8,8 +8,11 @@ final int WRAP_BOX_HEIGHT = 430;
 final int WRAP_BOX_X = 80 + WRAP_BOX_WIDTH / 2;
 final int WRAP_BOX_Y = 70 + WRAP_BOX_HEIGHT / 2;
 
-final int COLOR_WIDTH = 160;
-final int COLOR_HEIGHT = 170;
+final int COLOR_SELECTOR_WIDTH = 160;
+final int COLOR_SELECTOR_HEIGHT = 170;
+final int COLOR_WIDTH = 150;
+final int COLOR_HEIGHT = 160;
+
 
 final int HORIZONTAL_SPACE = 20;
 final int APP_VERTICAL_SPACE = 50;
@@ -26,7 +29,8 @@ Toggle onOffToggle, playPauseToggle;
 Button brightDownButton, brightUpButton, replayButton;
 PImage[] images = new PImage[12];
 
-// --------------------------------------------------------------------------------------- INIT UI
+
+// --------------------------------------------------------------------------------------------------------------- INIT UI
 void initUI() {
   images[0] = loadImage("color_default.png");
   images[1] = loadImage("color_selected.png");
@@ -45,15 +49,16 @@ void initUI() {
   ui_comps = new ControlP5(this);
   colorPaletteToggles = new Toggle[COLOR_PALETTE_SIZE];
   
-  // --------------------------------------------------------------------------------------- COLOR PALETTE COLORS
+  
+  // -------------------------------------------------------------------------- COLOR PALETTE TOGGLES
   int index = 0;
   for (int row = 1; row <= 2; row++) {
     for (int col = 1; col <= COLOR_PALETTE_SIZE / 2; col++) {
-      int x = 80 + (col * HORIZONTAL_SPACE) + ((col - 1) * COLOR_WIDTH);
-      int y = 70 + (row * CP_VERTICAL_SPACE) + ((row - 1) * COLOR_HEIGHT);
+      int x = 80 + (col * HORIZONTAL_SPACE) + ((col - 1) * COLOR_SELECTOR_WIDTH);
+      int y = 70 + (row * CP_VERTICAL_SPACE) + ((row - 1) * COLOR_SELECTOR_HEIGHT);
       colorPaletteToggles[index] = ui_comps.addToggle("colorToggle" + index)
         .setPosition(x, y)
-        .setSize(COLOR_WIDTH, COLOR_HEIGHT)
+        .setSize(COLOR_SELECTOR_WIDTH, COLOR_SELECTOR_HEIGHT)
         .setImages(images[0], images[1])
         .setId(index)
         .setState(false);
@@ -68,7 +73,7 @@ void initUI() {
     colorToggle.addCallback(new CallbackListener() {
       public void controlEvent(CallbackEvent theEvent) {
         if (theEvent.getAction() == ControlP5.ACTION_PRESS) {
-          sendUpdateColorPalette(colorToggle.getId(), colorToggle.getState());
+          updateSelectedColors(colorToggle.getId(), colorToggle.getState());
         }
       }
     });
@@ -76,7 +81,7 @@ void initUI() {
   }
   
     
-  // --------------------------------------------------------------------------------------- BRIGHT DOWN
+  // -------------------------------------------------------------------------- BRIGHT DOWN
   int x = 370;
   int y = 550;
   brightDownButton = ui_comps.addButton("brightDownButton")
@@ -93,7 +98,7 @@ void initUI() {
     }
   });
     
-  // --------------------------------------------------------------------------------------- REPLAY
+  // -------------------------------------------------------------------------- REPLAY
   x += SQUARE_BUTTON_SIZE + HORIZONTAL_SPACE;
   replayButton = ui_comps.addButton("replayButton")
     .setPosition(x, y)
@@ -111,7 +116,7 @@ void initUI() {
   });
     
     
-  // --------------------------------------------------------------------------------------- PLAY/PAUSE
+  // -------------------------------------------------------------------------- PLAY/PAUSE
   x += SQUARE_BUTTON_SIZE + HORIZONTAL_SPACE;
   playPauseToggle = ui_comps.addToggle("playPauseToggle")
     .setPosition(x, y)
@@ -125,14 +130,17 @@ void initUI() {
       if (theEvent.getAction() == ControlP5.ACTION_PRESS) {
         play = playPauseToggle.getState();
         println("play: "+play);
-        
         sendPlayPause();
+        if (play)
+          title.play();
+        else 
+          title.pause();
       }
     }    
   });
     
     
-  // --------------------------------------------------------------------------------------- BRIGHT UP
+  // -------------------------------------------------------------------------- BRIGHT UP
   x += SQUARE_BUTTON_SIZE + HORIZONTAL_SPACE;
   brightUpButton = ui_comps.addButton("brightUpButton")
     .setPosition(x, y)
@@ -149,7 +157,7 @@ void initUI() {
   });
   
     
-  // --------------------------------------------------------------------------------------- ON/OFF
+  // -------------------------------------------------------------------------- ON/OFF
   x = 370;
   y += SQUARE_BUTTON_SIZE + APP_VERTICAL_SPACE;
   onOffToggle = ui_comps.addToggle("onOffToggle")
@@ -172,31 +180,27 @@ void initUI() {
   
 }
 
-
-// --------------------------------------------------------------------------------------- DRAW UI
-void drawUI() {
-  fill(WRAP_BOX_COLOR);
-  rect(WRAP_BOX_X, WRAP_BOX_Y, WRAP_BOX_WIDTH, WRAP_BOX_HEIGHT, 18.5);
-} 
  
- 
-// --------------------------------------------------------------------------------------- SEND COLOR PALETTE UPDATE
-void sendUpdateColorPalette(int toggle, boolean selected) {
-  if (selected)
-    arduino.write("cp:" + toggle + ":0x" + hex(colorPalette[toggle]) + "\n");
-  else
-    arduino.write("cp:" + toggle + ":0x000000\n");
+// --------------------------------------------------------------------------------------------------------------- SEND COLOR SELECT
+void updateSelectedColors(int toggle, boolean selected) {
+  arduino.write("sc:" + toggle + ":" + int(selected) + "\n");
   
   delay(10);
 }
 
-// --------------------------------------------------------------------------------------- SEND BRIGHTNESS
+void sendColorPaletteColor(int cpColor) {
+  arduino.write("cp:" + cpColor + ":0x" + hex(colorPalette[cpColor]) + "\n");
+  delay(10);
+}
+
+// --------------------------------------------------------------------------------------------------------------- SEND BRIGHTNESS
 void sendBrightness(String up_down) {
   arduino.write("bright" + up_down + "\n");
   delay(10);
 }
 
-// --------------------------------------------------------------------------------------- SEND ON / OFF
+
+// --------------------------------------------------------------------------------------------------------------- SEND ON / OFF
 void sendLedsOnOff() {
   if (ledsOn)
     arduino.write("ledsOn");
@@ -206,13 +210,15 @@ void sendLedsOnOff() {
   delay(10);
 }
 
-// --------------------------------------------------------------------------------------- SEND REPLAY
+
+// --------------------------------------------------------------------------------------------------------------- SEND REPLAY
 void sendReplay() {
   arduino.write("replay");
   delay(10);
 }
 
-// --------------------------------------------------------------------------------------- SEND PLAY / PAUSE
+
+// --------------------------------------------------------------------------------------------------------------- SEND PLAY / PAUSE
 void sendPlayPause() {
   if (play)
     arduino.write("play");
@@ -221,3 +227,31 @@ void sendPlayPause() {
     
   delay(10);
 }
+
+
+// --------------------------------------------------------------------------------------------------------------- DRAW UI
+void drawUI() {
+  // COLOR PALETTE WRAP BOX
+  fill(WRAP_BOX_COLOR);
+  rect(WRAP_BOX_X, WRAP_BOX_Y, WRAP_BOX_WIDTH, WRAP_BOX_HEIGHT, 18.5);
+  
+  
+    // COLOR PALETTE COLORS
+  int index = 0;
+  for (int row = 1; row <= 2; row++) {
+    for (int col = 1; col <= COLOR_PALETTE_SIZE / 2; col++) {
+      int x = 80 + (col * HORIZONTAL_SPACE) + ((col - 1) * COLOR_SELECTOR_WIDTH);
+      int y = 70 + (row * CP_VERTICAL_SPACE) + ((row - 1) * COLOR_SELECTOR_HEIGHT);
+      colorPaletteToggles[index] = ui_comps.addToggle("colorToggle" + index)
+        .setPosition(x, y)
+        .setSize(COLOR_SELECTOR_WIDTH, COLOR_SELECTOR_HEIGHT)
+        .setImages(images[0], images[1])
+        .setId(index)
+        .setState(false);
+        
+      index++;
+    }
+  }
+  
+} 
+ 
