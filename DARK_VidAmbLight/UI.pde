@@ -25,11 +25,8 @@ Label[] mainMenuLables;
 Toggle onOffToggle, playPauseToggle;
 Button brightDownButton, brightUpButton, replayButton;
 PImage[] images = new PImage[12];
-boolean ledsOn;
-boolean play;
 
-
-
+// --------------------------------------------------------------------------------------- INIT UI
 void initUI() {
   images[0] = loadImage("color_default.png");
   images[1] = loadImage("color_selected.png");
@@ -44,12 +41,11 @@ void initUI() {
   images[10] = loadImage("replay_default.png");
   images[11] = loadImage("replay_pressed.png");
   
-  ledsOn = false;
-  play = false;
   
   ui_comps = new ControlP5(this);
   colorPaletteToggles = new Toggle[COLOR_PALETTE_SIZE];
   
+  // --------------------------------------------------------------------------------------- COLOR PALETTE COLORS
   int index = 0;
   for (int row = 1; row <= 2; row++) {
     for (int col = 1; col <= COLOR_PALETTE_SIZE / 2; col++) {
@@ -65,34 +61,95 @@ void initUI() {
       index++;
     }
   }
-    
   
+  // callbacks
+  for(Toggle colorToggle : colorPaletteToggles) {
+    
+    colorToggle.addCallback(new CallbackListener() {
+      public void controlEvent(CallbackEvent theEvent) {
+        if (theEvent.getAction() == ControlP5.ACTION_PRESS) {
+          sendUpdateColorPalette(colorToggle.getId(), colorToggle.getState());
+        }
+      }
+    });
+      
+  }
+  
+    
+  // --------------------------------------------------------------------------------------- BRIGHT DOWN
   int x = 370;
   int y = 550;
   brightDownButton = ui_comps.addButton("brightDownButton")
     .setPosition(x, y)
     .setSize(SQUARE_BUTTON_SIZE, SQUARE_BUTTON_SIZE)
     .setImages(images[2], images[2], images[3]);
-  
+    
+  // callback
+  brightDownButton.addCallback(new CallbackListener() {
+    public void controlEvent(CallbackEvent theEvent) {
+      if (theEvent.getAction() == ControlP5.ACTION_PRESS) {
+        sendBrightness("Down");
+      }  
+    }
+  });
+    
+  // --------------------------------------------------------------------------------------- REPLAY
   x += SQUARE_BUTTON_SIZE + HORIZONTAL_SPACE;
   replayButton = ui_comps.addButton("replayButton")
     .setPosition(x, y)
     .setSize(SQUARE_BUTTON_SIZE, SQUARE_BUTTON_SIZE)
     .setImages(images[10], images[10], images[11]);
-  
+    
+  // callback
+  replayButton.addCallback(new CallbackListener() {
+    public void controlEvent(CallbackEvent theEvent) {
+      if (theEvent.getAction() == ControlP5.ACTION_PRESS) {
+        sendReplay();
+        title.jump(0.0);
+      };
+    }
+  });
+    
+    
+  // --------------------------------------------------------------------------------------- PLAY/PAUSE
   x += SQUARE_BUTTON_SIZE + HORIZONTAL_SPACE;
   playPauseToggle = ui_comps.addToggle("playPauseToggle")
     .setPosition(x, y)
     .setSize(SQUARE_BUTTON_SIZE, SQUARE_BUTTON_SIZE)
     .setImages(images[8], images[8], images[9])
     .setState(false);
-
+    
+  // callback
+  playPauseToggle.addCallback(new CallbackListener() {
+    public void controlEvent(CallbackEvent theEvent) {
+      if (theEvent.getAction() == ControlP5.ACTION_PRESS) {
+        play = playPauseToggle.getState();
+        println("play: "+play);
+        
+        sendPlayPause();
+      }
+    }    
+  });
+    
+    
+  // --------------------------------------------------------------------------------------- BRIGHT UP
   x += SQUARE_BUTTON_SIZE + HORIZONTAL_SPACE;
   brightUpButton = ui_comps.addButton("brightUpButton")
     .setPosition(x, y)
     .setSize(SQUARE_BUTTON_SIZE, SQUARE_BUTTON_SIZE)
     .setImages(images[4], images[4], images[5]);
+    
+  // callback
+  brightUpButton.addCallback(new CallbackListener() {
+    public void controlEvent(CallbackEvent theEvent) {
+      if (theEvent.getAction() == ControlP5.ACTION_PRESS) {
+        sendBrightness("Up");
+      };
+    }
+  });
   
+    
+  // --------------------------------------------------------------------------------------- ON/OFF
   x = 370;
   y += SQUARE_BUTTON_SIZE + APP_VERTICAL_SPACE;
   onOffToggle = ui_comps.addToggle("onOffToggle")
@@ -100,12 +157,67 @@ void initUI() {
     .setSize(ON_OFF_BUTTON_WIDTH, SQUARE_BUTTON_SIZE)
     .setImages(images[6], images[6], images[7])
     .setState(false);
+    
+  // callback
+  onOffToggle.addCallback(new CallbackListener() {
+    public void controlEvent(CallbackEvent theEvent) {
+      if (theEvent.getAction() == ControlP5.ACTION_PRESS) {
+        ledsOn = onOffToggle.getState();
+        println("ledsOn: "+ledsOn);
+        
+        sendLedsOnOff();
+      }
+    }    
+  });
   
 }
 
 
+// --------------------------------------------------------------------------------------- DRAW UI
 void drawUI() {
   fill(WRAP_BOX_COLOR);
   rect(WRAP_BOX_X, WRAP_BOX_Y, WRAP_BOX_WIDTH, WRAP_BOX_HEIGHT, 18.5);
-}
+} 
  
+ 
+// --------------------------------------------------------------------------------------- SEND COLOR PALETTE UPDATE
+void sendUpdateColorPalette(int toggle, boolean selected) {
+  if (selected)
+    arduino.write("cp:" + toggle + ":0x" + hex(colorPalette[toggle]) + "\n");
+  else
+    arduino.write("cp:" + toggle + ":0x000000\n");
+  
+  delay(10);
+}
+
+// --------------------------------------------------------------------------------------- SEND BRIGHTNESS
+void sendBrightness(String up_down) {
+  arduino.write("bright" + up_down + "\n");
+  delay(10);
+}
+
+// --------------------------------------------------------------------------------------- SEND ON / OFF
+void sendLedsOnOff() {
+  if (ledsOn)
+    arduino.write("ledsOn");
+  else
+    arduino.write("ledsOff");
+  
+  delay(10);
+}
+
+// --------------------------------------------------------------------------------------- SEND REPLAY
+void sendReplay() {
+  arduino.write("replay");
+  delay(10);
+}
+
+// --------------------------------------------------------------------------------------- SEND PLAY / PAUSE
+void sendPlayPause() {
+  if (play)
+    arduino.write("play");
+  else
+    arduino.write("pause");
+    
+  delay(10);
+}
