@@ -8,6 +8,7 @@ final int VIDEO_HEIGHT = 360;
 final int MATRIX_WIDTH = 20;
 final int MATRIX_HEIGHT = 10;
 final int COLOR_PALETTE_SIZE = 10;
+final int FRAME_RATE_INTERVAL = 500;
 
 color[] colorPalette = {#F6F6F9, #FFF6C8, #FEF580, #F9DF4A, #F8A20F, #9A5F20, #B73E09, #BC0F0A, #640000, #2C0004};
 int[][] colorMatrix;
@@ -24,12 +25,13 @@ PImage frame;
 boolean ledsOn;
 boolean play;
 
+int lastFrameTime = 0;
 
 
 void setup() {
   size(1080, 810);
   frameRate(30);
-    //printArray(Serial.list());
+  //printArray(Serial.list());
   String portName = Serial.list()[4];
   arduino = new Serial(this, portName, 115200);
   arduino.clear();
@@ -39,10 +41,12 @@ void setup() {
   initUI();
   drawUI();
 
-  
+  /*
   for (int i = 0; i < COLOR_PALETTE_SIZE; i++) {
     sendColorPaletteColor(i);
   }
+  */
+  
   colorMatrix = new int[MATRIX_WIDTH][MATRIX_HEIGHT];
   
   colorMode(RGB, 255, 255, 255, 100);
@@ -54,7 +58,7 @@ void setup() {
   
   
   
-  video.frameRate(2);
+  //video.frameRate(2);
 
   video.loop();
   video.jump(0.0);
@@ -79,11 +83,13 @@ void draw() {
 
 
 void movieEvent(Movie title) {
-  if (ledsOn) {
+  if (millis() - lastFrameTime >= FRAME_RATE_INTERVAL) {
+    lastFrameTime = millis();
+    
     title.read();
     frame = title.copy();
     frame.loadPixels();
-    
+  
     calculateMatrixColors();
     //updateMatrix();
     sendMatrixFrame();

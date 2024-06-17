@@ -64,7 +64,7 @@ void initUI() {
         .setSize(COLOR_SELECTOR_WIDTH, COLOR_SELECTOR_HEIGHT)
         .setImages(images[0], images[1])
         .setId(index)
-        .setState(false);
+        .setState(true);
         
       index++;
     }

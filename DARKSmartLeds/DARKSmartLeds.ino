@@ -15,7 +15,7 @@ CRGB led_strip[NUM_LEDS];
 bool ledsOn;
 bool play;
 int brightness;
-uint32_t colorPalette[10];
+uint32_t colorPalette[10] = {0xF6F6F9, 0xFFF6C8, 0xFEF580, 0xF9DF4A, 0xF8A20F, 0x9A5F20, 0xB73E09, 0xBC0F0A, 0x640000, 0x2C0004};
 boolean selectedColors[10];
 
 
@@ -24,13 +24,12 @@ boolean selectedColors[10];
 void setup() {
   Serial.begin(115200);
 
-  ledsOn = false;
+  ledsOn = true;
   play = false;
-  brightness = 50;
+  brightness = 200;
 
   for (int i = 0; i < 10; i++) {
-    colorPalette[i] = 0x000000;
-    selectedColors[i] = false;
+    selectedColors[i] = true;
   }
 
   FastLED.addLeds<WS2812B, LED_DATA_IN_PIN, GRB>(led_strip, NUM_LEDS).setCorrection(TypicalSMD5050);
@@ -45,71 +44,66 @@ void loop() {
   String readSerial = "";
   // while there's any serial available, read it:
   while (Serial.available() > 0) {
-    FastLED.clear();
     readSerial = Serial.readStringUntil('\n');
-  
-    if (readSerial.startsWith("cp:")) {
-      addColorPalette(readSerial);
-    } 
-    else if (readSerial == "ledsOn") {
-      ledsOn = true;
-    } 
-    else if (readSerial == "ledsOff") {
-      ledsOn = false;
-    } 
-    else if (readSerial == "brightDown") {
-      if (brightness > 20)
-        brightness -= 20;
-      else if (brightness <= 20 && brightness >= 10)
-        brightness -= 5;
-    } 
-    else if (readSerial == "brightUp") {
-      if (brightness <= 200 && brightness > 20)
-        brightness += 20;
-      else if (brightness <= 20)
-        brightness += 5;
-    } 
-    else if (readSerial == "play") {
+    Serial.println(readSerial);
+
+    if (!play) {
+      while (readSerial != "play") {
+        ;
+      }
       play = true;
-    } 
-    else if (readSerial == "pause") {
-      play = false;
-      clearLeds();
-    } 
-    else if (readSerial == "replay") {
-      play = true;
-    } 
-    else if (readSerial.startsWith("sc:")) {
-      addColorPalette(readSerial);
-    } 
-    else if (readSerial.startsWith("fr:")) {
-      updateMatrix(readSerial);
-    } 
-    else if (readSerial.startsWith("nfr")) {
-      clearLeds();
     }
+    else {
+      if (readSerial.startsWith("cp:")) {
+        addColorPalette(readSerial);
+      } 
+      else if (readSerial == "ledsOn") {
+        ledsOn = true;
+      } 
+      else if (readSerial == "ledsOff") {
+        ledsOn = false;
+      } 
+      else if (readSerial == "brightDown") {
+        if (brightness > 20)
+          brightness -= 20;
+        else if (brightness <= 20 && brightness >= 10)
+          brightness -= 5;
+      } 
+      else if (readSerial == "brightUp") {
+        if (brightness <= 200 && brightness > 20)
+          brightness += 20;
+        else if (brightness <= 20)
+          brightness += 5;
+      } 
 
+      else if (readSerial == "pause") {
+        play = false;
+        break;
+      } 
+      else if (readSerial == "replay") {
+        break;
+      } 
+      else if (readSerial.startsWith("sc:")) {
+        addColorPalette(readSerial);
+      } 
+      else if (readSerial.startsWith("fr:")) {
+        updateMatrix(readSerial);
+      } 
 
-    if (ledsOn) {
-      if (play) {
+      if (ledsOn) {
         FastLED.setBrightness(brightness);
-      } else
-        solid(CRGB(colorPalette[0]));
-        FastLED.setBrightness(brightness);
-    } else {
-      solid(CRGB(0x000000));
-      FastLED.setBrightness(0);
+        FastLED.show();
+      }
+
     }
-
-    FastLED.show();
-  
+    
+    
   }
-
-  FastLED.clear();
-  solid(CRGB(0x000000));
-  FastLED.setBrightness(0);
-  FastLED.show();
   
+  Serial.flush();
+  FastLED.clear();
+  clearLeds();
+  delay(200);
 }
 
 
@@ -219,8 +213,6 @@ void updateMatrix(String readSerial) {
 
   if (selectedColors[color])
     led_strip[mapLeds(XY(x, y), y)] = colorPalette[color];
-  else
-    led_strip[mapLeds(XY(x, y), y)] = CRGB(0x000000);
 
   FastLED.setBrightness(brightness);
   delay(25);

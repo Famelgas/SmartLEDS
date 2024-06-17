@@ -1,18 +1,18 @@
 
 
 void sendMatrixFrame() {
-  arduino.write("nfr\n");
+  
   String sendMatrix = "fr:";
   for (int x = 0; x < MATRIX_WIDTH; x++) {
     for (int y = 0; y < MATRIX_HEIGHT; y++) {
       if (colorMatrix[x][y] != -1) {
         sendMatrix += x + ":" + y + ":" + colorMatrix[x][y] + "\n";
         arduino.write(sendMatrix);
-        delay(25);
+        delay(200);
       }
     }
   }
-  
+
   arduino.clear();
 }
 
