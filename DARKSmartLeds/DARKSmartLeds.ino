@@ -12,7 +12,6 @@
 CRGB led_strip[NUM_LEDS];
 
 // ---------------------- GLOBAL ----------------------
-bool ledsOn;
 bool play;
 int brightness;
 uint32_t colorPalette[10] = {0xF6F6F9, 0xFFF6C8, 0xFEF580, 0xF9DF4A, 0xF8A20F, 0x9A5F20, 0xB73E09, 0xBC0F0A, 0x640000, 0x2C0004};
@@ -24,7 +23,6 @@ boolean selectedColors[10];
 void setup() {
   Serial.begin(115200);
 
-  ledsOn = true;
   play = false;
   brightness = 200;
 
@@ -57,12 +55,6 @@ void loop() {
       if (readSerial.startsWith("cp:")) {
         addColorPalette(readSerial);
       } 
-      else if (readSerial == "ledsOn") {
-        ledsOn = true;
-      } 
-      else if (readSerial == "ledsOff") {
-        ledsOn = false;
-      } 
       else if (readSerial == "brightDown") {
         if (brightness > 20)
           brightness -= 20;
@@ -90,11 +82,8 @@ void loop() {
         updateMatrix(readSerial);
       } 
 
-      if (ledsOn) {
-        FastLED.setBrightness(brightness);
-        FastLED.show();
-      }
-
+      FastLED.setBrightness(brightness);
+      FastLED.show();
     }
     
     
@@ -201,8 +190,6 @@ void updateSelectedColors(String readSerial) {
 
 void updateMatrix(String readSerial) {
   FastLED.clear();
-  // solid(CRGB(0x000000));
-
   String pxColor = readSerial.substring(readSerial.indexOf(":") + 1);
   int xTk = pxColor.indexOf(":");
   int yTk = pxColor.lastIndexOf(":");
@@ -214,6 +201,4 @@ void updateMatrix(String readSerial) {
   if (selectedColors[color])
     led_strip[mapLeds(XY(x, y), y)] = colorPalette[color];
 
-  FastLED.setBrightness(brightness);
-  delay(25);
 }

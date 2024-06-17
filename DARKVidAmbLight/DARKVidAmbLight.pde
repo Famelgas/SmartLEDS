@@ -38,15 +38,11 @@ void setup() {
 
   ledsOn = false;
   play = false;
+  
+  println("antes");
   initUI();
   drawUI();
 
-  /*
-  for (int i = 0; i < COLOR_PALETTE_SIZE; i++) {
-    sendColorPaletteColor(i);
-  }
-  */
-  
   colorMatrix = new int[MATRIX_WIDTH][MATRIX_HEIGHT];
   
   colorMode(RGB, 255, 255, 255, 100);
@@ -56,9 +52,6 @@ void setup() {
   
   video = new Movie(this, "gow3.mp4");
   
-  
-  
-  //video.frameRate(2);
 
   video.loop();
   video.jump(0.0);
