@@ -13,9 +13,10 @@ CRGB led_strip[ NUM_LEDS ];
 
 // ---------------------- GLOBAL ----------------------
 bool ledsOn;
+bool play;
 int brightness;
 int mode;
-int pickedColor[3];
+uint32_t colorPalette[10];
 
 
 // -------------------------------------------------------------------------------
@@ -24,11 +25,13 @@ void setup() {
   Serial.begin(115200);
 
   ledsOn = false;
+  play = false;
   mode=0;
   brightness = 50;
-  pickedColor[0] = 255;
-  pickedColor[1] = 138;
-  pickedColor[2] = 18;
+
+  for (int i = 0; i < 10; i++) {
+    colorPalette[i] = 0x000000;
+  }
 
   FastLED.addLeds<WS2812B, LED_DATA_IN_PIN, GRB>(led_strip, NUM_LEDS).setCorrection(TypicalSMD5050);
   FastLED.setBrightness(brightness);
@@ -42,7 +45,6 @@ void loop() {
   FastLED.clear();
 
   String readSerial = "";
-
   while (Serial.available() > 0) {
     char receivedChar = (char)Serial.read();
   
@@ -50,19 +52,27 @@ void loop() {
     if (receivedChar == '\n') {
       readSerial.trim();
 
-      if (readSerial == "power_on") {
+      if (readSerial == "ledsOn") {
         ledsOn = true;
-      } else if (readSerial.startsWith("picked_color:")) {
-        parsePickedColor(readSerial);
-      } else if (readSerial == "mode_solid") {
-        mode = 0;
-      } else if (readSerial == "mode_proximity") {
-        mode = 1;
-      } else if (readSerial == "mode_brightness") {
-        mode = 2;
-      } else if (readSerial == "mode_rainbow") {
-        mode = 3;
-      }
+      } else if (readSerial == "ledsOff") {
+        ledsOn = false;
+      } else if (readSerial == "brightDown") {
+        if (brightness >= 30)
+          brightness -= 25;
+      } else if (readSerial == "brightUp") {
+        if (brightness <= 230)
+          brightness += 25;
+      } else if (readSerial == "play") {
+        play = true;
+      } else if (readSerial == "pause") {
+        play = false;
+      } else if (readSerial == "replay") {
+        play = true;
+      } else if (readSerial.startsWith("cp:")) {
+        updateColorPalette(readSerial); 
+      } else if (readSerial.startsWith("fr:")) {
+        updateColorPalette(readSerial); 
+      } 
       Serial.flush(); // Clear the buffer after processing
       readSerial = "";
       break;
@@ -72,18 +82,15 @@ void loop() {
   Serial.flush();
   
   if (ledsOn) {
-    switch (mode) {
-      case 0: // solid color
-        solid(CRGB(pickedColor[0], pickedColor[1], pickedColor[2]));
-        break;      
-      case -1: // error
-        fill_solid(led_strip, NUM_LEDS, CRGB(CRGB::Orange));
-        break;
+    if (play) {
+      solid(CRGB(0xFFBC0F0A));
     }
+
     FastLED.setBrightness(brightness);
   }
   else {
     FastLED.clear();
+    solid(CRGB(0x000000));
     FastLED.setBrightness(0);
   }
   
@@ -91,8 +98,14 @@ void loop() {
 }
 
 
+// ------------------------------------------------------------------------------------
+// ------------------------------------ SERIAL COM ------------------------------------
+
+
+
 // ------------------------------------------------------------------------------
 // ------------------------------------ LEDS ------------------------------------
+
 uint16_t XY (uint8_t x, uint8_t y) {
   // any out of bounds address maps to the first hidden pixel
   if ( (x >= MATRIX_WIDTH) || (y >= MATRIX_HEIGHT) ) {
@@ -135,13 +148,6 @@ int mapLeds(uint8_t index, uint8_t y) {
 
 // -------------------------------------------------------------------------------
 // ------------------------------------ MODES ------------------------------------
-void parsePickedColor(String pckColor) {
-  int rgb_tk2 = pckColor.indexOf(",");
-  int color_tk = pckColor.lastIndexOf(",");
-  pickedColor[0] = pckColor.substring(pckColor.indexOf(":") + 1, rgb_tk2).toInt();
-  pickedColor[1] = pckColor.substring(rgb_tk2 + 1, color_tk).toInt();
-  pickedColor[2] = pckColor.substring(color_tk + 1).toInt();
-}
 
 void solid(const struct CRGB & color) {
   for (uint8_t y = 0; y < MATRIX_HEIGHT; y++) {
@@ -153,26 +159,37 @@ void solid(const struct CRGB & color) {
   delay(25);
 }
 
-/*
-void movReact() {
-  // Use the parsed colorMatrix
-  FastLED.clear();
-  for (uint8_t y = 0; y < MATRIX_HEIGHT; y++) {
-    for (uint8_t x = 0; x < MATRIX_WIDTH; x++) {
-      String colorStr = colorMatrix[x][y];
-      int firstComma = colorStr.indexOf(',');
-      int secondComma = colorStr.indexOf(',', firstComma + 1);
-      
-      int r = colorStr.substring(0, firstComma).toInt();
-      int g = colorStr.substring(firstComma + 1, secondComma).toInt();
-      int b = colorStr.substring(secondComma + 1).toInt();
-      
-      led_strip[mapLeds(XY(x, y), y)] = CRGB(r, g, b);
-    }
-  }
-  FastLED.setBrightness(brightness);
-  FastLED.show();
-  delay(25);
+
+void updateColorPalette(String colorStr) {
+  String prsColor = colorStr.substring(colorStr.indexOf(":") + 1);
+  int tk = prsColor.indexOf(":");
+  int i = prsColor.substring(0, tk).toInt();
+  uint32_t color = strtoul(colorStr.substring(tk + 1).c_str(), NULL, 16);
+  colorPalette[i] = color;
 }
-*/
+
+
+void updateMatrix(String frame) {
+  FastLED.clear();
+  solid(CRGB(0x000000));
+
+  String frameLeds = frame.substring(frame.indexOf(":") + 1);
+  
+  int pxI = 0;
+  for (int i = 0; i < frame.length(); i++) {
+    int nextPxI = frameLeds.indexOf(';', pxI);
+    String led = frameLeds.substring(pxI, nextPxI);
+
+    int x = led.substring(0,led.indexOf(",")).toInt();
+    int y = led.substring(led.indexOf(",") + 1, led.lastIndexOf(",")).toInt();
+    int color = led.substring(led.lastIndexOf(",") + 1).toInt();
+
+    led_strip[mapLeds(XY(x, y), y)] = colorPalette[color];
+  }
+
+  FastLED.setBrightness(brightness);
+  delay(50);
+}
+
+
 
