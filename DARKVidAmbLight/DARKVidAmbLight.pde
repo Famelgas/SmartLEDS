@@ -8,22 +8,21 @@ final int VIDEO_HEIGHT = 720;
 final int COLOR_PALETTE_SIZE = 10;
 final int FRAME_RATE_INTERVAL = 1500;
 
-color[] colorPalette = {#F6F6F9, #FFF6C8, #FEF580, #F9DF4A, #F8A20F, #9A5F20, #B73E09, #BC0F0A, #640000, #2C0004};
-boolean[] selectedColors;
-
-final int NUM_LEDS = 228;
-final int LAST_VISIBLE_LED = 227;
-
-final int ORIGINAL_MATRIX_WIDTH = 20;
-final int ORIGINAL_MATRIX_HEIGHT = 10;
-final int MATRIX_WIDTH = ORIGINAL_MATRIX_WIDTH / 2;
-final int MATRIX_HEIGHT = ORIGINAL_MATRIX_HEIGHT / 2;
+color[] colorPalette = {#F2D028, #F3BD1D, #D98C30, #D96907, #8B4404, #742C04, #591B04, #640000, #640000, #AE1007};
+//color[] colorPalette = {#F6F6F9, #FFF6C8, #FEF580, #F9DF4A, #F8A20F, #9A5F20, #B73E09, #BC0F0A, #640000, #2C0004};
 
 
-final int CELL_WIDTH = VIDEO_WIDTH / MATRIX_WIDTH;
-final int CELL_HEIGHT = VIDEO_HEIGHT / MATRIX_HEIGHT;
+final int NUM_LEDS = 50;
+final int MATRIX_WIDTH = 10;
+final int MATRIX_HEIGHT = 5;
+final int LAST_VISIBLE_LED = 49;
 
-color[][] ledMatrix;
+
+int CELL_WIDTH = VIDEO_WIDTH / MATRIX_WIDTH;
+int CELL_HEIGHT = VIDEO_HEIGHT / MATRIX_HEIGHT;
+
+
+int[] led_strip;
 
 Serial arduino;
 Movie video;
@@ -50,10 +49,8 @@ void setup() {
   arduino = new Serial(this, portName, 115200);
   arduino.clear();
 
-
-  ledMatrix = new color[MATRIX_WIDTH][MATRIX_HEIGHT];
   
-  
+  led_strip = new int[NUM_LEDS];
   
   colorMode(RGB, 255, 255, 255, 100);
   rectMode(CENTER);
@@ -64,7 +61,7 @@ void setup() {
   
   
   video.loop();
-  video.jump(16.0);
+  video.jump(0.0);
   video.pause();
   
    
@@ -88,15 +85,15 @@ void draw() {
 
 void movieEvent(Movie title) {
   if (millis() - lastFrameTime >= FRAME_RATE_INTERVAL) {
-    //readFrame = false;
     lastFrameTime = millis();
     
     title.read();
+    println(title.time());
+    
     frame = title.copy();
     frame.loadPixels();
   
     calculateMatrixColors();
-    //updateMatrix();
     sendMatrixFrame();
   }
 }

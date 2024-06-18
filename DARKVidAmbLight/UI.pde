@@ -27,8 +27,8 @@ ControlP5 ui_comps;
 ControlP5 cl_palette;
 Toggle[] colorPaletteToggles;
 Label[] mainMenuLables;
-Toggle onOffToggle, playPauseToggle;
-Button brightDownButton, brightUpButton, replayButton;
+Toggle playPauseToggle;
+Button onOffToggle, brightDownButton, brightUpButton, replayButton;
 PImage[] images = new PImage[12];
 
 
@@ -175,11 +175,27 @@ void initUI() {
   // -------------------------------------------------------------------------- ON/OFF
   x = 370;
   y += SQUARE_BUTTON_SIZE + APP_VERTICAL_SPACE;
-  onOffToggle = ui_comps.addToggle("onOffToggle")
+  onOffToggle = ui_comps.addButton("onOffButton")
     .setPosition(x, y)
     .setSize(ON_OFF_BUTTON_WIDTH, SQUARE_BUTTON_SIZE)
-    .setImages(images[6], images[6], images[7])
-    .setState(false);
+    .setImages(images[6], images[6], images[7]);
+    
+    
+      // callback
+  onOffToggle.addCallback(new CallbackListener() {
+    public void controlEvent(CallbackEvent theEvent) {
+      if (theEvent.getAction() == ControlP5.ACTION_PRESS) {
+        sendPowerOff();
+        if (playPauseToggle.getState())
+          playPauseToggle.toggle();
+        
+        play = false;
+        video.pause();
+
+      };
+    }
+  });
+    
     
 }
 
@@ -205,6 +221,9 @@ void sendReplay() {
   delay(25);
 }
 
+void sendPowerOff() {
+  arduino.write("powerOff\n");
+}
 
 // --------------------------------------------------------------------------------------------------------------- SEND PLAY / PAUSE
 void sendPlayPause() {
