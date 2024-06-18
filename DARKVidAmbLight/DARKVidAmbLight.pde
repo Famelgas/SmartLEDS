@@ -6,7 +6,7 @@ import controlP5.*;
 final int VIDEO_WIDTH = 1280;
 final int VIDEO_HEIGHT = 720;
 final int COLOR_PALETTE_SIZE = 10;
-final int FRAME_RATE_INTERVAL = 1000;
+final int FRAME_RATE_INTERVAL = 1500;
 
 color[] colorPalette = {#F6F6F9, #FFF6C8, #FEF580, #F9DF4A, #F8A20F, #9A5F20, #B73E09, #BC0F0A, #640000, #2C0004};
 
@@ -60,7 +60,7 @@ void setup() {
   
   
   video.loop();
-  video.jump(78.0);
+  video.jump(16.0);
   video.pause();
   
    
@@ -83,8 +83,8 @@ void draw() {
 
 
 void movieEvent(Movie title) {
-  if (millis() - lastFrameTime >= FRAME_RATE_INTERVAL && readFrame) {
-    readFrame = false;
+  if (millis() - lastFrameTime >= FRAME_RATE_INTERVAL) {
+    //readFrame = false;
     lastFrameTime = millis();
     
     title.read();

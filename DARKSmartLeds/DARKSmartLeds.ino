@@ -7,7 +7,7 @@
 #define NUM_LEDS 228
 #define MATRIX_WIDTH 20
 #define MATRIX_HEIGHT 10
-#define LAST_VISIBLE_LED 199
+#define LAST_VISIBLE_LED 227
 
 CRGB led_strip[NUM_LEDS];
 
@@ -22,30 +22,25 @@ boolean selectedColors[10];
 // ------------------------------------ SETUP ------------------------------------
 void setup() {
   Serial.begin(115200);
-
+  
   play = false;
-  brightness = 200;
+  brightness = 100;
 
   for (int i = 0; i < 10; i++) {
     selectedColors[i] = true;
   }
-
-  FastLED.addLeds<WS2812B, LED_DATA_IN_PIN, GRB>(led_strip, NUM_LEDS).setCorrection(TypicalSMD5050);
-
-  clearLeds();
-  FastLED.show();
-
-  FastLED.setBrightness(brightness);
-  FastLED.clear();
   
+  //delay(3000); // power-up safety delay
+  FastLED.addLeds<WS2812B, LED_DATA_IN_PIN, GRB>(led_strip, NUM_LEDS).setCorrection(TypicalSMD5050);
+  FastLED.setMaxRefreshRate(0);
+  FastLED.clear();
+  FastLED.setBrightness(brightness);
 }
 
 
 // ------------------------------------------------------------------------------
 // ------------------------------------ LOOP ------------------------------------
 void loop() {
-  clearLeds();
-  
   String readSerial = "";
   // while there's any serial available, read it:
   while (Serial.available() > 0) {
@@ -60,16 +55,14 @@ void loop() {
     }
     else {
       if (readSerial == "brightDown") {
-        if (brightness > 20)
-          brightness -= 20;
-        else if (brightness <= 20 && brightness >= 10)
-          brightness -= 5;
+        if (brightness > 10) {
+          brightness -= 10;
+        }
       } 
       else if (readSerial == "brightUp") {
-        if (brightness <= 200 && brightness > 20)
-          brightness += 20;
-        else if (brightness <= 20)
-          brightness += 5;
+        if (brightness < 200) {
+          brightness += 10;
+        }
       } 
 
       else if (readSerial == "pause") {
@@ -77,6 +70,7 @@ void loop() {
         break;
       } 
       else if (readSerial == "replay") {
+        FastLED.clear(true);
         break;
       } 
       else if (readSerial.startsWith("sc:")) {
@@ -92,10 +86,11 @@ void loop() {
     
     
   }
+
   
   Serial.flush();
   FastLED.clear();
-  delay(200);
+  delay(100);
 }
 
 
@@ -109,50 +104,21 @@ uint16_t XY (uint8_t x, uint8_t y) {
   }
 
   const uint8_t XYTable[] = {
-      0,   1,   2,   3,   4,   5,   6,   7,   8,   9,  10,  11,  12,  13,  14,  15,  16,  17,  18,  19,
-    39,  38,  37,  36,  35,  34,  33,  32,  31,  30,  29,  28,  27,  26,  25,  24,  23,  22,  21,  20,
-    40,  41,  42,  43,  44,  45,  46,  47,  48,  49,  50,  51,  52,  53,  54,  55,  56,  57,  58,  59,
-    79,  78,  77,  76,  75,  74,  73,  72,  71,  70,  69,  68,  67,  66,  65,  64,  63,  62,  61,  60,
-    80,  81,  82,  83,  84,  85,  86,  87,  88,  89,  90,  91,  92,  93,  94,  95,  96,  97,  98,  99,
-    119, 118, 117, 116, 115, 114, 113, 112, 111, 110, 109, 108, 107, 106, 105, 104, 103, 102, 101, 100,
-    120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139,
-    159, 158, 157, 156, 155, 154, 153, 152, 151, 150, 149, 148, 147, 146, 145, 144, 143, 142, 141, 140,
-    160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179,
-    199, 198, 197, 196, 195, 194, 193, 192, 191, 190, 189, 188, 187, 186, 185, 184, 183, 182, 181, 180
+      1,   2,   3,   4,   5,   6,   7,   8,   9,  10,  11,  12,  13,  14,  15,  16,  17,  18,  19,  20,
+     43,  42,  41,  40,  39,  38,  37,  36,  35,  34,  33,  32,  31,  30,  29,  28,  27,  26,  25,  24,
+     47,  48,  49,  50,  51,  52,  53,  54,  55,  56,  57,  58,  59,  60,  61,  62,  63,  64,  65,  66,
+     89,  88,  87,  86,  85,  84,  83,  82,  81,  80,  79,  78,  77,  76,  75,  74,  73,  72,  71,  70,
+     93,  94,  95,  96,  97,  98,  99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112,
+    135, 134, 133, 132, 131, 130, 129, 128, 127, 126, 125, 124, 123, 122, 121, 120, 119, 118, 117, 116,
+    139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158,
+    181, 180, 179, 178, 177, 176, 175, 174, 173, 172, 171, 170, 169, 168, 167, 166, 165, 164, 163, 162,
+    185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204,
+    227, 226, 225, 224, 223, 222, 221, 220, 219, 218, 217, 216, 215, 214, 213, 212, 211, 210, 209, 208
   };
   
   uint8_t i = (y * MATRIX_WIDTH) + x;
   uint8_t j = XYTable[i];
   return j;
-}
-
-/*
-     0,   1,   2,   3,   4,   5,   6,   7,   8,   9,
-    19,  18,  17,  16,  15,  14,  13,  12,  11,  10,
-    20,  21,  22,  23,  24,  25,  26,  27,  28,  29,
-    39,  38,  37,  36,  35,  34,  33,  32,  31,  30,
-    40,  41,  42,  43,  44,  45,  46,  47,  48,  49
-*/
-
-
-int mapLeds(uint8_t index, uint8_t y) {
-  if (y == 0) return map(index, 0, 19, 1, 20);
-  if (y == 1) return map(index, 20, 39, 24, 43);
-  if (y == 2) return map(index, 40, 59, 47, 66);
-  if (y == 3) return map(index, 60, 79, 70, 89);
-  if (y == 4) return map(index, 80, 99, 93, 112);
-  if (y == 5) return map(index, 100, 119, 116, 135);
-  if (y == 6) return map(index, 120, 139, 139, 158);
-  if (y == 7) return map(index, 140, 159, 162, 181);
-  if (y == 8) return map(index, 160, 179, 185, 204);
-  if (y == 9) return map(index, 180, 199, 208, 227);
-  return -1; // Invalid index
-}
-
-void clearLeds() {
-  FastLED.clear();
-  solid(CRGB(0x000000));
-  FastLED.setBrightness(0);
 }
 
 
@@ -162,11 +128,11 @@ void clearLeds() {
 void solid(const struct CRGB& color) {
   for (uint8_t y = 0; y < MATRIX_HEIGHT; y++) {
     for (uint8_t x = 0; x < MATRIX_WIDTH; x++) {
-      led_strip[mapLeds(XY(x, y), y)] = color;
+      led_strip[XY(x, y)] = color;
     }
   }
   FastLED.setBrightness(brightness);
-  delay(25);
+  //delay(25);
 }
 
 
@@ -182,12 +148,18 @@ void updateSelectedColors(String readSerial) {
 }
 
 
-void updateMatrix(String led) {
-  int index = led.substring(1, led.indexOf(":")).toInt();
-  int color = led.substring(led.indexOf(":") + 1).toInt();
+void updateMatrix(String readSerial) {
+  String ledColor = readSerial.substring(readSerial.indexOf(":") + 1);
+  int tk = ledColor.indexOf(":");
+  int index = ledColor.substring(0, tk).toInt();
+  int color = ledColor.substring(tk + 1).toInt();
 
-  if (selectedColors[color])
+  //  if (selectedColors[color])
+  if (color == 10)
+    led_strip[index] = CRGB(0x000000);
+  else
     led_strip[index] = colorPalette[color];
+
 
 }
 

@@ -1,5 +1,4 @@
 
-
 // ------------------------------------------------------------------------------------------------------- LEDS
 
 int  XY (int x, int y) {
@@ -29,49 +28,23 @@ int  XY (int x, int y) {
 
 
 
-/*
-     0,   1,   2,   3,   4,   5,   6,   7,   8,   9,
-    19,  18,  17,  16,  15,  14,  13,  12,  11,  10,
-    20,  21,  22,  23,  24,  25,  26,  27,  28,  29,
-    39,  38,  37,  36,  35,  34,  33,  32,  31,  30,
-    40,  41,  42,  43,  44,  45,  46,  47,  48,  49
-*/
-
-
-int mapLeds(float index, int y) {
-  if (y == 0) return int(map(index, 0, 19, 1, 20));
-  if (y == 1) return int(map(index, 20, 39, 24, 43));
-  if (y == 2) return int(map(index, 40, 59, 47, 66));
-  if (y == 3) return int(map(index, 60, 79, 70, 89));
-  if (y == 4) return int(map(index, 80, 99, 93, 112));
-  if (y == 5) return int(map(index, 100, 119, 116, 135));
-  if (y == 6) return int(map(index, 120, 139, 139, 158));
-  if (y == 7) return int(map(index, 140, 159, 162, 181));
-  if (y == 8) return int(map(index, 160, 179, 185, 204));
-  if (y == 9) return int(map(index, 180, 199, 208, 227));
-  return -1; // Invalid index
-}
-
-
-
-
-
 void sendMatrixFrame() {
   int ms = millis();
   int dl = 0;
   
   for (int x = 0; x < MATRIX_WIDTH; x++) {
     for (int y = 0; y < MATRIX_HEIGHT; y++) {
-      String sendLed = ":" + XY(x, y) + ":" + led_strip[XY(x, y)] + "\n";
-      arduino.write(sendLed);
-      println("sm: " + sendLed);
-      delay(25);
+      int index = XY(x, y);
+      int colorIndex = led_strip[XY(x, y)];
+          
+      arduino.write(":" + index + ":" + colorIndex + "\n");
+      
+      delay(5);
     }
   }
   
   dl = millis() - ms;
   println("delay: " + dl);
-  playPauseToggle.toggle();
   arduino.clear();
 }
 
@@ -94,7 +67,7 @@ void calculateMatrixColors() {
 
       // If the closest color distance is above a threshold, set it to black
       if (colorDistance(c, colorPalette[closestColor]) > 50) { // Adjust the threshold as needed
-        led_strip[XY(i, j)] = -1; // Black
+        led_strip[XY(i, j)] = 10; // Black
       } else {
         led_strip[XY(i, j)] = closestColor;
       }
