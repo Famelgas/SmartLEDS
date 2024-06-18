@@ -41,7 +41,7 @@ void sendMatrixFrame() {
   }
 
   arduino.clear();
-  delay(25);
+  delay(30);
 }
 
 
