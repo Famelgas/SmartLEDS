@@ -3,19 +3,25 @@ import processing.serial.*;
 import controlP5.*;
 
 
-final int VIDEO_WIDTH = 640;
-final int VIDEO_HEIGHT = 360;
-final int MATRIX_WIDTH = 10;
-final int MATRIX_HEIGHT = 5;
+final int VIDEO_WIDTH = 1280;
+final int VIDEO_HEIGHT = 720;
 final int COLOR_PALETTE_SIZE = 10;
 final int FRAME_RATE_INTERVAL = 1000;
 
 color[] colorPalette = {#F6F6F9, #FFF6C8, #FEF580, #F9DF4A, #F8A20F, #9A5F20, #B73E09, #BC0F0A, #640000, #2C0004};
-int[][] colorMatrix;
+
+
+final int NUM_LEDS = 228;
+final int  MATRIX_WIDTH = 20;
+final int  MATRIX_HEIGHT = 10;
+final int  LAST_VISIBLE_LED = 227;
+
 
 int CELL_WIDTH = VIDEO_WIDTH / MATRIX_WIDTH;
 int CELL_HEIGHT = VIDEO_HEIGHT / MATRIX_HEIGHT;
 
+
+int[] led_strip;
 
 Serial arduino;
 Movie video;
@@ -25,6 +31,8 @@ boolean play;
 
 int lastFrameTime = 0;
 
+boolean readFrame = true;
+
 
 void setup() {
   size(1080, 810);
@@ -32,7 +40,6 @@ void setup() {
   
   play = false;
   
-  println("antes");
   initUI();
   drawUI();
 
@@ -42,7 +49,7 @@ void setup() {
   arduino.clear();
 
   
-  colorMatrix = new int[MATRIX_WIDTH][MATRIX_HEIGHT];
+  led_strip = new int[NUM_LEDS];
   
   colorMode(RGB, 255, 255, 255, 100);
   rectMode(CENTER);
@@ -52,11 +59,12 @@ void setup() {
   video = new Movie(this, "gow3.mp4");
   
   
-  //video.loop();
-  //video.jump(0.0);
-  //video.pause();
+  video.loop();
+  video.jump(78.0);
+  video.pause();
   
-  
+   
+
 }
 
 void draw() {
@@ -75,7 +83,8 @@ void draw() {
 
 
 void movieEvent(Movie title) {
-  if (millis() - lastFrameTime >= FRAME_RATE_INTERVAL) {
+  if (millis() - lastFrameTime >= FRAME_RATE_INTERVAL && readFrame) {
+    readFrame = false;
     lastFrameTime = millis();
     
     title.read();

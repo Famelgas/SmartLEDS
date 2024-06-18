@@ -31,8 +31,13 @@ void setup() {
   }
 
   FastLED.addLeds<WS2812B, LED_DATA_IN_PIN, GRB>(led_strip, NUM_LEDS).setCorrection(TypicalSMD5050);
+
+  clearLeds();
+  FastLED.show();
+
   FastLED.setBrightness(brightness);
   FastLED.clear();
+  
 }
 
 
@@ -54,10 +59,7 @@ void loop() {
       play = true;
     }
     else {
-      if (readSerial.startsWith("cp:")) {
-        addColorPalette(readSerial);
-      } 
-      else if (readSerial == "brightDown") {
+      if (readSerial == "brightDown") {
         if (brightness > 20)
           brightness -= 20;
         else if (brightness <= 20 && brightness >= 10)
@@ -78,7 +80,7 @@ void loop() {
         break;
       } 
       else if (readSerial.startsWith("sc:")) {
-        addColorPalette(readSerial);
+        updateSelectedColors(readSerial);
       } 
       else if (readSerial.startsWith(":")) {
         updateMatrix(readSerial);
@@ -94,15 +96,6 @@ void loop() {
   Serial.flush();
   FastLED.clear();
   delay(200);
-}
-
-
-// ------------------------------------------------------------------------------------
-// ------------------------------------ SERIAL COM ------------------------------------
-
-void readInfo() {
-  
-
 }
 
 
@@ -133,12 +126,14 @@ uint16_t XY (uint8_t x, uint8_t y) {
   return j;
 }
 
-
+/*
      0,   1,   2,   3,   4,   5,   6,   7,   8,   9,
     19,  18,  17,  16,  15,  14,  13,  12,  11,  10,
     20,  21,  22,  23,  24,  25,  26,  27,  28,  29,
     39,  38,  37,  36,  35,  34,  33,  32,  31,  30,
     40,  41,  42,  43,  44,  45,  46,  47,  48,  49
+*/
+
 
 int mapLeds(uint8_t index, uint8_t y) {
   if (y == 0) return map(index, 0, 19, 1, 20);
@@ -151,12 +146,13 @@ int mapLeds(uint8_t index, uint8_t y) {
   if (y == 7) return map(index, 140, 159, 162, 181);
   if (y == 8) return map(index, 160, 179, 185, 204);
   if (y == 9) return map(index, 180, 199, 208, 227);
-  return -1;  // Invalid index
+  return -1; // Invalid index
 }
 
 void clearLeds() {
   FastLED.clear();
   solid(CRGB(0x000000));
+  FastLED.setBrightness(0);
 }
 
 
@@ -173,8 +169,6 @@ void solid(const struct CRGB& color) {
   delay(25);
 }
 
-}
-
 
 void updateSelectedColors(String readSerial) {
   String prsColor = readSerial.substring(readSerial.indexOf(":") + 1);
@@ -188,16 +182,14 @@ void updateSelectedColors(String readSerial) {
 }
 
 
-void updateMatrix(String readSerial) {
-  String pxColor = readSerial.substring(readSerial.indexOf(":") + 1);
-  int xTk = pxColor.indexOf(":");
-  int yTk = pxColor.lastIndexOf(":");
-
-  int x = pxColor.substring(0, xTk).toInt();
-  int y = pxColor.substring(xTk + 1, yTk).toInt();
-  int color = pxColor.substring(yTk + 1).toInt();
+void updateMatrix(String led) {
+  int index = led.substring(1, led.indexOf(":")).toInt();
+  int color = led.substring(led.indexOf(":") + 1).toInt();
 
   if (selectedColors[color])
-    led_strip[mapLeds(XY(x, y), y)] = colorPalette[color];
+    led_strip[index] = colorPalette[color];
 
 }
+
+
+

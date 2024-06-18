@@ -119,6 +119,7 @@ void initUI() {
           playPauseToggle.toggle();
         
         play = true;
+        readFrame = true;
         
         video.jump(0.0);
         video.play();
@@ -141,8 +142,10 @@ void initUI() {
       if (theEvent.getAction() == ControlP5.ACTION_PRESS) {
         play = playPauseToggle.getState();
         println("play: "+play);
-        if (play)
+        if (play) {
           video.play();
+          readFrame = true;  
+        }
         else 
           video.pause();
           
