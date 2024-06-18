@@ -5,8 +5,10 @@
 
 // ---------------------- LEDS ----------------------
 #define NUM_LEDS 228
-#define MATRIX_WIDTH 20
-#define MATRIX_HEIGHT 10
+#define ORIGINAL_MATRIX_WIDTH 20
+#define ORIGINAL_MATRIX_HEIGHT 10
+#define MATRIX_WIDTH (ORIGINAL_MATRIX_WIDTH / 2)
+#define MATRIX_HEIGHT (ORIGINAL_MATRIX_HEIGHT / 2)
 #define LAST_VISIBLE_LED 227
 
 CRGB led_strip[NUM_LEDS];
@@ -93,13 +95,15 @@ void loop() {
   delay(100);
 }
 
-
 // ------------------------------------------------------------------------------
 // ------------------------------------ LEDS ------------------------------------
 
 uint16_t XY (uint8_t x, uint8_t y) {
+  // Adjust for the new reduced resolution
+  x *= 2;
+  y *= 2;
   // any out of bounds address maps to the first hidden pixel
-  if ( (x >= MATRIX_WIDTH) || (y >= MATRIX_HEIGHT) ) {
+  if ( (x >= ORIGINAL_MATRIX_WIDTH) || (y >= ORIGINAL_MATRIX_HEIGHT) ) {
     return (LAST_VISIBLE_LED + 1);
   }
 
@@ -116,11 +120,9 @@ uint16_t XY (uint8_t x, uint8_t y) {
     227, 226, 225, 224, 223, 222, 221, 220, 219, 218, 217, 216, 215, 214, 213, 212, 211, 210, 209, 208
   };
   
-  uint8_t i = (y * MATRIX_WIDTH) + x;
-  uint8_t j = XYTable[i];
-  return j;
+  uint8_t i = (y * ORIGINAL_MATRIX_WIDTH) + x;
+  return XYTable[i];
 }
-
 
 // -------------------------------------------------------------------------------
 // ------------------------------------ MODES ------------------------------------
@@ -128,7 +130,11 @@ uint16_t XY (uint8_t x, uint8_t y) {
 void solid(const struct CRGB& color) {
   for (uint8_t y = 0; y < MATRIX_HEIGHT; y++) {
     for (uint8_t x = 0; x < MATRIX_WIDTH; x++) {
-      led_strip[XY(x, y)] = color;
+      uint16_t baseIndex = XY(x, y);
+      led_strip[baseIndex] = color;
+      led_strip[baseIndex + 1] = color;
+      led_strip[baseIndex + ORIGINAL_MATRIX_WIDTH] = color;
+      led_strip[baseIndex + ORIGINAL_MATRIX_WIDTH + 1] = color;
     }
   }
   FastLED.setBrightness(brightness);
@@ -161,6 +167,24 @@ void updateMatrix(String readSerial) {
     led_strip[index] = colorPalette[color];
 
 
+}
+
+void updateMatrix(String readSerial) {
+  String ledColor = readSerial.substring(readSerial.indexOf(":") + 1);
+  int tk = ledColor.indexOf(":");
+  int index = ledColor.substring(0, tk).toInt();
+  int color = ledColor.substring(tk + 1).toInt();
+
+  if (color == 10)
+    color = 0x000000;
+  else
+    color = colorPalette[color];
+
+  // Update the group of 4 LEDs
+  led_strip[index] = color;
+  led_strip[index + 1] = color;
+  led_strip[index + ORIGINAL_MATRIX_WIDTH] = color;
+  led_strip[index + ORIGINAL_MATRIX_WIDTH + 1] = color;
 }
 
 
